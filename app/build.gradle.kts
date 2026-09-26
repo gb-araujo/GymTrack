@@ -8,11 +8,11 @@ plugins {
 }
 
 android {
-    namespace = "app.gabrielaraujo.track"
+    namespace = "app.gabrielaraujo.gymtrack"
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "app.gabrielaraujo.track"
+        applicationId = "app.gabrielaraujo.gymtrack"
         minSdk = 24
         targetSdk = 35
         versionCode = 1

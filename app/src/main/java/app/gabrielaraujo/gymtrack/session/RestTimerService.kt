@@ -156,8 +156,15 @@ class RestTimerService : Service() {
         }
 
         fun stop(context: Context) {
-            // stopService não exige startForeground, ao contrário de enviar outro intent.
-            context.stopService(Intent(context, RestTimerService::class.java).setAction(ACTION_STOP))
+            val intent = Intent(context, RestTimerService::class.java).setAction(ACTION_STOP)
+            try {
+                // Enfileira depois de um START pendente: o serviço sempre chega a chamar startForeground
+                // antes de parar (parar antes disso derruba o app no Android 12+).
+                context.startService(intent)
+            } catch (_: IllegalStateException) {
+                // App em segundo plano não pode chamar startService.
+                context.stopService(intent)
+            }
             NotificationManagerCompat.from(context).cancel(NOTIFICATION_RUNNING)
         }
 

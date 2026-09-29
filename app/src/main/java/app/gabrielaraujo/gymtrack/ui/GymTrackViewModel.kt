@@ -419,7 +419,7 @@ class GymTrackViewModel(
 }
 
 /** Nova série copiando carga/reps da última (ou valores padrão). */
-fun SessionExercise.withAddedSet(): SessionExercise {
+fun SessionExercise.withAddedSet(completed: Boolean = false): SessionExercise {
     val last = sets.lastOrNull()
-    return copy(sets = sets + SetRecord(id = newId(), weight = last?.weight ?: 0.0, reps = last?.reps ?: 10))
+    return copy(sets = sets + SetRecord(id = newId(), weight = last?.weight ?: 0.0, reps = last?.reps ?: 10, completed = completed))
 }

@@ -67,7 +67,7 @@ class GymTrackViewModelTest {
         withTimeout(10_000) {
             var value = block()
             while (value == null) { delay(20); value = block() }
-            value
+            value!!
         }
     }
 

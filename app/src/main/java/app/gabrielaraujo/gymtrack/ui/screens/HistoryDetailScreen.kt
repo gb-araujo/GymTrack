@@ -233,7 +233,7 @@ private fun SessionEditor(
                         Text(
                             "+ Adicionar série", color = TC.Indigo400, fontSize = 13.sp,
                             modifier = Modifier.clip(RoundedCornerShape(8.dp))
-                                .clickable { updateExercise(exIndex) { e -> e.withAddedSet().let { it.copy(sets = it.sets.dropLast(1) + it.sets.last().copy(completed = true)) } } }
+                                .clickable { updateExercise(exIndex) { e -> e.withAddedSet(completed = true) } }
                                 .padding(vertical = 6.dp),
                         )
                     }

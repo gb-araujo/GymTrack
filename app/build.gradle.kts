@@ -23,7 +23,7 @@ fun signingValue(prop: String, env: String): String? =
 
 android {
     namespace = "app.gabrielaraujo.gymtrack"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "app.gabrielaraujo.gymtrack"

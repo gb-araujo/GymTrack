@@ -11,7 +11,7 @@ Offline-first: tudo fica no aparelho (Room) e, com login Google, sincroniza com 
 - **Firebase Auth** (login Google via Credential Manager) + **Cloud Firestore** para sincronização
 - **Health Connect** para registrar os treinos no Google Fit e similares (opcional)
 - `ViewModel` + `StateFlow` alimentados por `Flow`s do Room (MVVM)
-- `minSdk` 26 · `targetSdk`/`compileSdk` 35
+- `minSdk` 26 · `targetSdk` 35 · `compileSdk` 36
 
 ## Funcionalidades
 

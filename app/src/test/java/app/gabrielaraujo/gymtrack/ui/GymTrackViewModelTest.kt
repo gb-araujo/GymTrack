@@ -181,11 +181,11 @@ class GymTrackViewModelTest {
         vm.startSession()
         val active = vm.await { it.activeSession != null }.activeSession!!
         vm.startRestTimer(90, active.session.exercises.first().id)
-        assertEquals(clock.now + 90_000, vm.state.value.activeSession!!.restEndsAt)
+        vm.await { it.activeSession?.restEndsAt == clock.now + 90_000 }
         vm.adjustRestTimer(15)
-        assertEquals(clock.now + 105_000, vm.state.value.activeSession!!.restEndsAt)
+        vm.await { it.activeSession?.restEndsAt == clock.now + 105_000 }
         vm.stopRestTimer()
-        assertNull(vm.state.value.activeSession!!.restEndsAt)
-        assertNotNull(vm.state.value.activeSession)
+        val stopped = vm.await { it.activeSession?.restEndsAt == null }
+        assertNotNull(stopped.activeSession)
     }
 }

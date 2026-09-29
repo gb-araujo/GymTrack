@@ -42,7 +42,7 @@ import app.gabrielaraujo.gymtrack.ui.GymTrackViewModel
 import app.gabrielaraujo.gymtrack.ui.components.BtnVariant
 import app.gabrielaraujo.gymtrack.ui.components.GymTrackButton
 import app.gabrielaraujo.gymtrack.ui.components.GymTrackCard
-import app.gabrielaraujo.gymtrack.ui.nanoid
+import app.gabrielaraujo.gymtrack.data.newId
 import app.gabrielaraujo.gymtrack.ui.theme.TC
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
@@ -182,13 +182,13 @@ private fun ImportDialog(onImport: (String) -> Boolean, onClose: () -> Unit) {
 private fun duplicate(plan: WorkoutPlan): WorkoutPlan {
     val now = System.currentTimeMillis()
     return plan.copy(
-        id = nanoid(),
+        id = newId(),
         name = "${plan.name} (cópia)",
         currentDayIndex = 0,
         createdAt = now,
         updatedAt = now,
         isActive = false,
-        days = plan.days.map { d -> d.copy(id = nanoid(), exercises = d.exercises.map { it.copy(id = nanoid()) }) },
+        days = plan.days.map { d -> d.copy(id = newId(), exercises = d.exercises.map { it.copy(id = newId()) }) },
     )
 }
 
@@ -205,7 +205,7 @@ private fun sharePlan(context: android.content.Context, plan: WorkoutPlan) {
 private fun parseImport(text: String): WorkoutPlan? = try {
     val parsed = exportJson.decodeFromString(PlanExport.serializer(), text)
     val now = System.currentTimeMillis()
-    parsed.workoutPlan.copy(id = nanoid(), currentDayIndex = 0, createdAt = now, updatedAt = now, isActive = false)
+    parsed.workoutPlan.copy(id = newId(), currentDayIndex = 0, createdAt = now, updatedAt = now, isActive = false)
 } catch (_: Exception) {
     null
 }

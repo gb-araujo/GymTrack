@@ -44,6 +44,17 @@ jobs:
       - name: Build release (R8)
         run: ./gradlew --stacktrace :app:assembleRelease
 
+      # Toda mudança de @Entity precisa do novo JSON em app/schemas/ commitado (base das migrações).
+      - name: Schema do Room versionado
+        run: |
+          changed=$(git status --porcelain app/schemas)
+          if [ -n "$changed" ]; then
+            echo "::error::Schema do Room mudou e não foi commitado. Rode o build e commite app/schemas/."
+            echo "$changed"
+            git ls-files --others --modified app/schemas | while read -r f; do echo "== $f"; cat "$f"; done
+            exit 1
+          fi
+
       - uses: actions/upload-artifact@v4
         if: always()
         with:

@@ -42,7 +42,7 @@ import app.gabrielaraujo.gymtrack.ui.components.BtnVariant
 import app.gabrielaraujo.gymtrack.ui.components.NumberStepper
 import app.gabrielaraujo.gymtrack.ui.components.ProgressBar
 import app.gabrielaraujo.gymtrack.ui.components.GymTrackButton
-import app.gabrielaraujo.gymtrack.ui.nanoid
+import app.gabrielaraujo.gymtrack.data.newId
 import app.gabrielaraujo.gymtrack.ui.theme.TC
 import kotlin.math.min
 import kotlin.math.roundToInt
@@ -129,7 +129,7 @@ fun GoalsScreen(vm: GymTrackViewModel) {
         NewGoalDialog(
             onCreate = { title, type, target ->
                 val gt = goalTypes.find { it.value == type }
-                vm.addGoal(Goal(id = nanoid(), type = type, title = title, target = target, unit = gt?.unit ?: "", createdAt = System.currentTimeMillis()))
+                vm.addGoal(Goal(id = newId(), type = type, title = title, target = target, unit = gt?.unit ?: "", createdAt = System.currentTimeMillis()))
                 showNew = false
             },
             onClose = { showNew = false },

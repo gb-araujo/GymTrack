@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
@@ -7,22 +9,48 @@ plugins {
     alias(libs.plugins.google.services)
 }
 
+/**
+ * Assinatura de release: lida de `keystore.properties` (fora do git) ou de variáveis de ambiente
+ * (GYMTRACK_KEYSTORE_FILE, GYMTRACK_KEYSTORE_PASSWORD, GYMTRACK_KEY_ALIAS, GYMTRACK_KEY_PASSWORD).
+ * Sem nenhuma das duas, o build de release sai sem assinatura.
+ */
+val keystoreProps = Properties().apply {
+    val file = rootProject.file("keystore.properties")
+    if (file.exists()) file.inputStream().use { load(it) }
+}
+fun signingValue(prop: String, env: String): String? =
+    keystoreProps.getProperty(prop) ?: System.getenv(env)
+
 android {
     namespace = "app.gabrielaraujo.gymtrack"
     compileSdk = 35
 
     defaultConfig {
         applicationId = "app.gabrielaraujo.gymtrack"
-        minSdk = 24
+        minSdk = 26
         targetSdk = 35
         versionCode = 1
         versionName = "1.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
+    signingConfigs {
+        val storeFilePath = signingValue("storeFile", "GYMTRACK_KEYSTORE_FILE")
+        if (storeFilePath != null) {
+            create("release") {
+                storeFile = rootProject.file(storeFilePath)
+                storePassword = signingValue("storePassword", "GYMTRACK_KEYSTORE_PASSWORD")
+                keyAlias = signingValue("keyAlias", "GYMTRACK_KEY_ALIAS")
+                keyPassword = signingValue("keyPassword", "GYMTRACK_KEY_PASSWORD")
+            }
+        }
+    }
+
     buildTypes {
         release {
-            isMinifyEnabled = false
+            isMinifyEnabled = true
+            isShrinkResources = true
+            signingConfig = signingConfigs.findByName("release")
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro",
@@ -39,6 +67,14 @@ android {
     buildFeatures {
         compose = true
     }
+    testOptions {
+        unitTests.isIncludeAndroidResources = true
+    }
+}
+
+ksp {
+    // Schema de cada versão do banco, versionado em app/schemas/ (base das migrações).
+    arg("room.schemaLocation", "$projectDir/schemas")
 }
 
 dependencies {
@@ -71,6 +107,13 @@ dependencies {
     implementation(libs.androidx.credentials.play.services.auth)
     implementation(libs.googleid)
     implementation(libs.kotlinx.coroutines.play.services)
+
+    implementation(libs.androidx.health.connect)
+
+    testImplementation(libs.junit)
+    testImplementation(libs.robolectric)
+    testImplementation(libs.androidx.test.core)
+    testImplementation(libs.kotlinx.coroutines.test)
 
     debugImplementation(libs.androidx.ui.tooling)
 }

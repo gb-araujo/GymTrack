@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- O id do cliente web é lido via getIdentifier(); impede o shrinker de removê-lo. -->
+<resources xmlns:tools="http://schemas.android.com/tools"
+    tools:keep="@string/default_web_client_id" />

@@ -1,5 +1,10 @@
 package app.gabrielaraujo.gymtrack.ui.screens
 
+import android.Manifest
+import android.content.pm.PackageManager
+import android.os.Build
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -33,6 +38,7 @@ import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
@@ -42,6 +48,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
+import androidx.core.content.ContextCompat
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -55,6 +63,18 @@ import app.gabrielaraujo.gymtrack.ui.formatWeight
 import app.gabrielaraujo.gymtrack.ui.theme.TC
 import app.gabrielaraujo.gymtrack.ui.timeAgo
 import kotlinx.coroutines.delay
+
+/** Pede permissão de notificação (Android 13+) para o aviso de fim de descanso. */
+@Composable
+private fun RequestNotificationPermission() {
+    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) return
+    val context = LocalContext.current
+    val launcher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { }
+    LaunchedEffect(Unit) {
+        val granted = ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
+        if (!granted) launcher.launch(Manifest.permission.POST_NOTIFICATIONS)
+    }
+}
 
 private fun clock(seconds: Int): String {
     val m = seconds / 60
@@ -71,6 +91,8 @@ fun WorkoutExecutionScreen(vm: GymTrackViewModel) {
     val current = session.exercises.getOrNull(idx) ?: return
     val total = session.exercises.size
     val completedExercises = session.exercises.count { it.completed }
+
+    RequestNotificationPermission()
 
     var showSubstitute by remember { mutableStateOf(false) }
     var showAbort by remember { mutableStateOf(false) }
@@ -148,7 +170,9 @@ fun WorkoutExecutionScreen(vm: GymTrackViewModel) {
 
         Column(Modifier.fillMaxWidth().weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = 16.dp)) {
             // Rest timer
-            active.restTimer?.let { rest ->
+            val restEndsAt = active.restEndsAt
+            val rest = restEndsAt?.let { rememberSecondsUntil(it) }
+            if (rest != null && rest > 0) {
                 Column(Modifier.fillMaxWidth().padding(bottom = 12.dp).clip(RoundedCornerShape(16.dp)).background(TC.Slate900).padding(16.dp)) {
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -159,9 +183,9 @@ fun WorkoutExecutionScreen(vm: GymTrackViewModel) {
                     }
                     Spacer(Modifier.height(12.dp))
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        RestBtn("−15s", Modifier.weight(1f)) { vm.startRestTimer((rest - 15).coerceAtLeast(0), current.id) }
+                        RestBtn("−15s", Modifier.weight(1f)) { vm.adjustRestTimer(-15) }
                         RestBtn("Pular", Modifier.weight(1f)) { vm.stopRestTimer() }
-                        RestBtn("+15s", Modifier.weight(1f)) { vm.startRestTimer(rest + 15, current.id) }
+                        RestBtn("+15s", Modifier.weight(1f)) { vm.adjustRestTimer(15) }
                     }
                 }
             }
@@ -294,6 +318,22 @@ fun WorkoutExecutionScreen(vm: GymTrackViewModel) {
         }
     }
 }
+
+/** Segundos restantes até [endsAt], atualizados a cada segundo (0 quando acabou). */
+@Composable
+private fun rememberSecondsUntil(endsAt: Long): Int {
+    val remaining by produceState(secondsUntil(endsAt), endsAt) {
+        while (true) {
+            value = secondsUntil(endsAt)
+            if (value <= 0) break
+            delay(250)
+        }
+    }
+    return remaining
+}
+
+private fun secondsUntil(endsAt: Long): Int =
+    ((endsAt - System.currentTimeMillis() + 999) / 1000).toInt().coerceAtLeast(0)
 
 @Composable
 private fun ElapsedTimer(startTime: Long) {

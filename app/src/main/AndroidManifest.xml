@@ -1,6 +1,20 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
+    <!-- Timer de descanso em segundo plano -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <uses-permission android:name="android.permission.VIBRATE" />
+
+    <!-- Health Connect: só grava sessões de treino -->
+    <uses-permission android:name="android.permission.health.WRITE_EXERCISE" />
+
+    <queries>
+        <package android:name="com.google.android.apps.healthdata" />
+    </queries>
+
     <application
         android:name=".GymTrackApplication"
         android:allowBackup="true"
@@ -12,6 +26,7 @@
         <activity
             android:name=".MainActivity"
             android:exported="true"
+            android:launchMode="singleTop"
             android:theme="@style/Theme.GymTrack"
             android:windowSoftInputMode="adjustResize">
             <intent-filter>
@@ -19,6 +34,48 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!-- Explicação de uso dos dados exigida pelo Health Connect (Android 13 ou menor) -->
+        <activity
+            android:name=".health.HealthPermissionsRationaleActivity"
+            android:exported="true"
+            android:theme="@style/Theme.GymTrack">
+            <intent-filter>
+                <action android:name="androidx.health.ACTION_SHOW_PERMISSIONS_RATIONALE" />
+            </intent-filter>
+        </activity>
+
+        <!-- Mesma explicação no Android 14+ -->
+        <activity-alias
+            android:name="ViewPermissionUsageActivity"
+            android:exported="true"
+            android:permission="android.permission.START_VIEW_PERMISSION_USAGE"
+            android:targetActivity=".health.HealthPermissionsRationaleActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW_PERMISSION_USAGE" />
+                <category android:name="android.intent.category.HEALTH_PERMISSIONS" />
+            </intent-filter>
+        </activity-alias>
+
+        <service
+            android:name=".session.RestTimerService"
+            android:exported="false"
+            android:foregroundServiceType="specialUse">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="Contagem regressiva do descanso entre séries iniciada pelo usuário durante o treino" />
+        </service>
+
+        <receiver
+            android:name=".widget.GymTrackWidget"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/gymtrack_widget_info" />
+        </receiver>
     </application>
 
 </manifest>

@@ -15,14 +15,15 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.EmojiEvents
-import androidx.compose.material.icons.filled.LocalFireDepartment
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -44,7 +45,13 @@ import app.gabrielaraujo.gymtrack.ui.components.BtnVariant
 import app.gabrielaraujo.gymtrack.ui.components.SectionLabel
 import app.gabrielaraujo.gymtrack.ui.components.GymTrackButton
 import app.gabrielaraujo.gymtrack.ui.components.GymTrackCard
+import app.gabrielaraujo.gymtrack.sync.SyncStatus
+import app.gabrielaraujo.gymtrack.ui.components.StreakBadge
+import app.gabrielaraujo.gymtrack.ui.components.StreakBar
+import app.gabrielaraujo.gymtrack.ui.components.SyncIndicator
+import app.gabrielaraujo.gymtrack.ui.components.syncStatusText
 import app.gabrielaraujo.gymtrack.ui.findActivity
+import app.gabrielaraujo.gymtrack.ui.formatDate
 import app.gabrielaraujo.gymtrack.ui.formatDuration
 import app.gabrielaraujo.gymtrack.ui.theme.TC
 import app.gabrielaraujo.gymtrack.ui.timeAgo
@@ -64,7 +71,6 @@ fun HomeScreen(
     val nextDay = plan?.days?.getOrNull(if (plan.days.isEmpty()) 0 else plan.currentDayIndex % plan.days.size)
     val lastSession = state.sessions.firstOrNull()
     val prs = state.personalRecords.values.take(3)
-    val recentCount = state.sessions.take(7).size
     var showAccount by remember { mutableStateOf(false) }
     var showDayPicker by remember { mutableStateOf(false) }
 
@@ -75,7 +81,9 @@ fun HomeScreen(
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         item {
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End, verticalAlignment = Alignment.CenterVertically) {
+                if (user != null) SyncIndicator(state.syncStatus, state.pendingSync, onClick = { showAccount = true })
+                Spacer(Modifier.width(8.dp))
                 val label = user?.let { it.displayName ?: it.email } ?: "Entrar"
                 Text(
                     label.let { if (it.length > 16) it.take(15) + "…" else it },
@@ -90,30 +98,11 @@ fun HomeScreen(
                     Text("Bem-vindo de volta", color = TC.Slate400, fontSize = 14.sp)
                     Text("GymTrack", color = TC.White, fontSize = 26.sp, fontWeight = FontWeight.Bold)
                 }
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    modifier = Modifier.clip(RoundedCornerShape(16.dp)).background(TC.Slate900).padding(horizontal = 16.dp, vertical = 8.dp),
-                ) {
-                    Icon(Icons.Default.LocalFireDepartment, null, tint = TC.Orange400, modifier = Modifier.size(20.dp))
-                    Text("${state.totalWorkouts}", color = TC.White, fontSize = 24.sp, fontWeight = FontWeight.Black)
-                    Text("treinos", color = TC.Slate400, fontSize = 10.sp)
-                }
+                StreakBadge(state.streak)
             }
         }
 
-        if (recentCount > 0) {
-            item {
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
-                    repeat(7) { i ->
-                        Box(
-                            Modifier.weight(1f).height(8.dp).clip(CircleShape)
-                                .background(if (i < recentCount) TC.Indigo500 else TC.Slate800),
-                        )
-                    }
-                    Text("últimos treinos", color = TC.Slate500, fontSize = 11.sp)
-                }
-            }
-        }
+        item { StreakBar(state.streak) }
 
         item {
             if (nextDay != null && plan != null) {
@@ -277,6 +266,7 @@ private fun DayPickerDialog(
 
 @Composable
 private fun AccountDialog(vm: GymTrackViewModel, onClose: () -> Unit) {
+    val state by vm.state.collectAsStateWithLifecycle()
     val user by vm.user.collectAsStateWithLifecycle()
     val signingIn by vm.signingIn.collectAsStateWithLifecycle()
     val authError by vm.authError.collectAsStateWithLifecycle()
@@ -291,23 +281,48 @@ private fun AccountDialog(vm: GymTrackViewModel, onClose: () -> Unit) {
                 Toast.makeText(context, "Não consegui ler o arquivo.", Toast.LENGTH_LONG).show()
             } else {
                 vm.importBackup(text) { count ->
-                    val msg = if (count < 0) "Falha ao importar: JSON inválido." else "Importados $count registros."
+                    val msg = if (count < 0) "Falha ao importar: backup inválido." else "Importados $count registros."
                     Toast.makeText(context, msg, Toast.LENGTH_LONG).show()
                 }
             }
         }
     }
+    val exportLauncher = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/json")) { uri ->
+        if (uri != null) {
+            vm.exportBackup(open = { context.contentResolver.openOutputStream(uri) }) { ok ->
+                Toast.makeText(context, if (ok) "Backup salvo." else "Falha ao salvar o backup.", Toast.LENGTH_LONG).show()
+            }
+        }
+    }
 
     androidx.compose.ui.window.Dialog(onDismissRequest = onClose) {
-        Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(TC.Slate900).padding(20.dp)) {
+        Column(
+            Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(TC.Slate900)
+                .verticalScroll(rememberScrollState()).padding(20.dp),
+        ) {
             Text("Conta", color = TC.White, fontSize = 18.sp, fontWeight = FontWeight.Bold)
             Spacer(Modifier.height(12.dp))
             val u = user
             if (u != null) {
                 Text(u.displayName ?: "Usuário", color = TC.White, fontWeight = FontWeight.SemiBold)
                 Text(u.email ?: "", color = TC.Slate500, fontSize = 12.sp)
-                Text("Sincronização ativa", color = TC.Emerald400, fontSize = 12.sp, modifier = Modifier.padding(top = 2.dp))
-                Spacer(Modifier.height(16.dp))
+                Spacer(Modifier.height(8.dp))
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    SyncIndicator(state.syncStatus, state.pendingSync, onClick = { vm.syncNow() })
+                    val isError = state.syncStatus is SyncStatus.Error
+                    Text(
+                        syncStatusText(state.syncStatus, state.pendingSync),
+                        color = if (isError) TC.Red400 else TC.Slate400, fontSize = 12.sp, modifier = Modifier.weight(1f),
+                    )
+                }
+                Spacer(Modifier.height(8.dp))
+                GymTrackButton(
+                    "Sincronizar agora",
+                    onClick = { vm.syncNow() },
+                    variant = BtnVariant.Ghost,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                Spacer(Modifier.height(8.dp))
                 GymTrackButton("Sair", onClick = { vm.signOut(); onClose() }, variant = BtnVariant.Ghost, modifier = Modifier.fillMaxWidth())
             } else {
                 Text("Entre com o Google para sincronizar seus treinos na nuvem e acessá-los em outros dispositivos.", color = TC.Slate400, fontSize = 14.sp)
@@ -323,14 +338,30 @@ private fun AccountDialog(vm: GymTrackViewModel, onClose: () -> Unit) {
                 )
             }
 
-            Spacer(Modifier.height(12.dp))
-            Text("Migração", color = TC.Slate500, fontSize = 12.sp)
+            Spacer(Modifier.height(16.dp))
+            Text("Health Connect", color = TC.Slate500, fontSize = 12.sp)
+            Spacer(Modifier.height(6.dp))
+            HealthConnectSection()
+
+            Spacer(Modifier.height(16.dp))
+            Text("Backup", color = TC.Slate500, fontSize = 12.sp)
             Spacer(Modifier.height(6.dp))
             GymTrackButton(
-                "Importar dados (JSON)",
+                "Exportar backup (JSON)",
+                onClick = { exportLauncher.launch("gymtrack-backup-${formatDate(System.currentTimeMillis(), "yyyy-MM-dd")}.json") },
+                variant = BtnVariant.Ghost,
+                modifier = Modifier.fillMaxWidth(),
+            )
+            Spacer(Modifier.height(6.dp))
+            GymTrackButton(
+                "Importar backup (JSON)",
                 onClick = { importLauncher.launch(arrayOf("application/json", "text/plain", "*/*")) },
                 variant = BtnVariant.Ghost,
                 modifier = Modifier.fillMaxWidth(),
+            )
+            Text(
+                "Inclui fichas, histórico, recordes, metas e exercícios personalizados. Também aceita o backup do app web antigo.",
+                color = TC.Slate600, fontSize = 11.sp, modifier = Modifier.padding(top = 6.dp),
             )
         }
     }

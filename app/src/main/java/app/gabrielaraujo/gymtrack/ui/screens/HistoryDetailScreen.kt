@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
@@ -18,11 +19,17 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.EmojiEvents
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -30,7 +37,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import app.gabrielaraujo.gymtrack.data.SessionExercise
+import app.gabrielaraujo.gymtrack.data.SetRecord
+import app.gabrielaraujo.gymtrack.data.WorkoutSession
 import app.gabrielaraujo.gymtrack.ui.GymTrackViewModel
+import app.gabrielaraujo.gymtrack.ui.components.BtnVariant
+import app.gabrielaraujo.gymtrack.ui.components.GymTrackButton
+import app.gabrielaraujo.gymtrack.ui.components.NumberStepper
+import app.gabrielaraujo.gymtrack.ui.withAddedSet
 import app.gabrielaraujo.gymtrack.ui.formatDuration
 import app.gabrielaraujo.gymtrack.ui.formatFullDate
 import app.gabrielaraujo.gymtrack.ui.formatVolume
@@ -42,11 +56,13 @@ import kotlin.math.roundToInt
 fun HistoryDetailScreen(vm: GymTrackViewModel, sessionId: String, onBack: () -> Unit) {
     val state by vm.state.collectAsStateWithLifecycle()
     val session = state.sessions.find { it.id == sessionId }
+    var draft by remember(sessionId) { mutableStateOf<WorkoutSession?>(null) }
+    var confirmDelete by remember { mutableStateOf(false) }
 
     Column(Modifier.fillMaxSize().background(TC.Background)) {
         Row(Modifier.fillMaxWidth().statusBarsPadding().padding(horizontal = 16.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Icon(Icons.AutoMirrored.Filled.ArrowBack, "Voltar", tint = TC.Slate400, modifier = Modifier.clip(RoundedCornerShape(10.dp)).clickable { onBack() }.padding(6.dp))
-            Column {
+            Icon(Icons.AutoMirrored.Filled.ArrowBack, "Voltar", tint = TC.Slate400, modifier = Modifier.clip(RoundedCornerShape(10.dp)).clickable { if (draft != null) draft = null else onBack() }.padding(6.dp))
+            Column(Modifier.weight(1f)) {
                 if (session != null) {
                     Text(formatFullDate(session.startTime), color = TC.Slate500, fontSize = 11.sp)
                     Text("Treino ${session.workoutDayLabel} — ${session.workoutDayName}", color = TC.White, fontSize = 16.sp, fontWeight = FontWeight.Bold)
@@ -54,9 +70,24 @@ fun HistoryDetailScreen(vm: GymTrackViewModel, sessionId: String, onBack: () -> 
                     Text("Treino não encontrado", color = TC.Slate400)
                 }
             }
+            if (session != null && draft == null) {
+                Icon(Icons.Default.Edit, "Editar treino", tint = TC.Slate400, modifier = Modifier.clip(RoundedCornerShape(10.dp)).clickable { draft = session }.padding(6.dp))
+                Icon(Icons.Default.Delete, "Excluir treino", tint = TC.Red400, modifier = Modifier.clip(RoundedCornerShape(10.dp)).clickable { confirmDelete = true }.padding(6.dp))
+            }
         }
 
         if (session == null) return@Column
+
+        draft?.let { editing ->
+            SessionEditor(
+                session = editing,
+                onChange = { draft = it },
+                onCancel = { draft = null },
+                onSave = { vm.updateCompletedSession(editing); draft = null },
+                modifier = Modifier.weight(1f),
+            )
+            return@Column
+        }
 
         LazyColumn(Modifier.fillMaxWidth().padding(horizontal = 16.dp), contentPadding = androidx.compose.foundation.layout.PaddingValues(vertical = 16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             item {
@@ -119,6 +150,19 @@ fun HistoryDetailScreen(vm: GymTrackViewModel, sessionId: String, onBack: () -> 
             }
         }
     }
+
+    if (confirmDelete) {
+        androidx.compose.ui.window.Dialog(onDismissRequest = { confirmDelete = false }) {
+            Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(TC.Slate900).padding(24.dp)) {
+                Text("Excluir treino?", color = TC.White, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                Text("O treino sai do histórico e os recordes pessoais são recalculados. Não dá para desfazer.", color = TC.Slate400, fontSize = 14.sp, modifier = Modifier.padding(vertical = 12.dp))
+                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    GymTrackButton("Cancelar", onClick = { confirmDelete = false }, variant = BtnVariant.Ghost, modifier = Modifier.weight(1f))
+                    GymTrackButton("Excluir", onClick = { confirmDelete = false; vm.deleteCompletedSession(sessionId); onBack() }, variant = BtnVariant.Danger, modifier = Modifier.weight(1f))
+                }
+            }
+        }
+    }
 }
 
 @Composable
@@ -126,5 +170,79 @@ private fun MiniStat(label: String, value: String, modifier: Modifier = Modifier
     Column(modifier.clip(RoundedCornerShape(12.dp)).background(TC.Slate900).padding(vertical = 10.dp), horizontalAlignment = Alignment.CenterHorizontally) {
         Text(value, color = TC.White, fontSize = 16.sp, fontWeight = FontWeight.Black)
         Text(label, color = TC.Slate500, fontSize = 10.sp)
+    }
+}
+
+@Composable
+private fun SessionEditor(
+    session: WorkoutSession,
+    onChange: (WorkoutSession) -> Unit,
+    onCancel: () -> Unit,
+    onSave: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    fun updateExercise(index: Int, transform: (SessionExercise) -> SessionExercise) =
+        onChange(session.copy(exercises = session.exercises.toMutableList().also { it[index] = transform(it[index]) }))
+
+    fun updateSet(exIndex: Int, setIndex: Int, transform: (SetRecord) -> SetRecord) =
+        updateExercise(exIndex) { ex -> ex.copy(sets = ex.sets.toMutableList().also { it[setIndex] = transform(it[setIndex]) }) }
+
+    Column(modifier.fillMaxWidth()) {
+        LazyColumn(
+            Modifier.fillMaxWidth().weight(1f).padding(horizontal = 16.dp),
+            contentPadding = androidx.compose.foundation.layout.PaddingValues(vertical = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            item {
+                Text("Toque no ✓ para marcar/desmarcar a série. Recordes e volume são recalculados ao salvar.", color = TC.Slate500, fontSize = 12.sp)
+            }
+            session.exercises.forEachIndexed { exIndex, ex ->
+                item(key = ex.id) {
+                    Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(TC.Slate900).padding(16.dp)) {
+                        Text(ex.name, color = TC.White, fontWeight = FontWeight.Bold)
+                        Spacer(Modifier.height(8.dp))
+                        ex.sets.forEachIndexed { setIndex, set ->
+                            Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                Box(
+                                    Modifier.size(32.dp).clip(RoundedCornerShape(10.dp))
+                                        .background(if (set.completed) TC.Emerald600 else TC.Slate800)
+                                        .clickable { updateSet(exIndex, setIndex) { it.copy(completed = !it.completed) } },
+                                    contentAlignment = Alignment.Center,
+                                ) {
+                                    if (set.completed) Icon(Icons.Default.Check, "Série concluída", tint = TC.White, modifier = Modifier.size(14.dp))
+                                    else Text("${setIndex + 1}", color = TC.Slate400, fontSize = 13.sp)
+                                }
+                                Column(Modifier.weight(1f)) {
+                                    Text("KG", color = TC.Slate500, fontSize = 10.sp)
+                                    NumberStepper(set.weight, { w -> updateSet(exIndex, setIndex) { it.copy(weight = w) } }, step = 2.5, min = 0.0, max = 500.0)
+                                }
+                                Column(Modifier.weight(1f)) {
+                                    Text("REPS", color = TC.Slate500, fontSize = 10.sp)
+                                    NumberStepper(set.reps.toDouble(), { r -> updateSet(exIndex, setIndex) { it.copy(reps = r.toInt()) } }, step = 1.0, min = 1.0, max = 100.0, isInt = true)
+                                }
+                                if (ex.sets.size > 1) {
+                                    Icon(
+                                        Icons.Default.Close, "Remover série", tint = TC.Slate500,
+                                        modifier = Modifier.clip(RoundedCornerShape(8.dp))
+                                            .clickable { updateExercise(exIndex) { e -> e.copy(sets = e.sets.filterIndexed { i, _ -> i != setIndex }) } }
+                                            .padding(4.dp),
+                                    )
+                                }
+                            }
+                        }
+                        Text(
+                            "+ Adicionar série", color = TC.Indigo400, fontSize = 13.sp,
+                            modifier = Modifier.clip(RoundedCornerShape(8.dp))
+                                .clickable { updateExercise(exIndex) { e -> e.withAddedSet().let { it.copy(sets = it.sets.dropLast(1) + it.sets.last().copy(completed = true)) } } }
+                                .padding(vertical = 6.dp),
+                        )
+                    }
+                }
+            }
+        }
+        Row(Modifier.fillMaxWidth().navigationBarsPadding().padding(16.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            GymTrackButton("Cancelar", onClick = onCancel, variant = BtnVariant.Ghost, modifier = Modifier.weight(1f))
+            GymTrackButton("Salvar", onClick = onSave, modifier = Modifier.weight(1f))
+        }
     }
 }

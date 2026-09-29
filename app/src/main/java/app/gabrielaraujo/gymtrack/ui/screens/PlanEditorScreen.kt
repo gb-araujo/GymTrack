@@ -43,7 +43,7 @@ import app.gabrielaraujo.gymtrack.data.WorkoutExercise
 import app.gabrielaraujo.gymtrack.data.WorkoutPlan
 import app.gabrielaraujo.gymtrack.ui.GymTrackViewModel
 import app.gabrielaraujo.gymtrack.ui.components.NumberStepper
-import app.gabrielaraujo.gymtrack.ui.nanoid
+import app.gabrielaraujo.gymtrack.data.newId
 import app.gabrielaraujo.gymtrack.ui.theme.TC
 
 @Composable
@@ -51,8 +51,8 @@ fun PlanEditorScreen(vm: GymTrackViewModel, planId: String, onDone: () -> Unit) 
     val state by vm.state.collectAsStateWithLifecycle()
     val now = System.currentTimeMillis()
     val initial = remember(planId) {
-        if (planId == "new") WorkoutPlan(id = nanoid(), name = "Nova Ficha", createdAt = now, updatedAt = now)
-        else state.plans.find { it.id == planId } ?: WorkoutPlan(id = nanoid(), name = "Nova Ficha", createdAt = now, updatedAt = now)
+        if (planId == "new") WorkoutPlan(id = newId(), name = "Nova Ficha", createdAt = now, updatedAt = now)
+        else state.plans.find { it.id == planId } ?: WorkoutPlan(id = newId(), name = "Nova Ficha", createdAt = now, updatedAt = now)
     }
     var plan by remember { mutableStateOf(initial) }
     var pickingForDay by remember { mutableStateOf<String?>(null) }
@@ -115,7 +115,7 @@ fun PlanEditorScreen(vm: GymTrackViewModel, planId: String, onDone: () -> Unit) 
                 AddRow("Adicionar treino") {
                     val labels = listOf("A", "B", "C", "D", "E", "F")
                     val label = labels.getOrElse(plan.days.size) { "${plan.days.size + 1}" }
-                    plan = plan.copy(days = plan.days + WorkoutDay(id = nanoid(), label = label, name = "", order = plan.days.size))
+                    plan = plan.copy(days = plan.days + WorkoutDay(id = newId(), label = label, name = "", order = plan.days.size))
                 }
             }
         }
@@ -124,7 +124,7 @@ fun PlanEditorScreen(vm: GymTrackViewModel, planId: String, onDone: () -> Unit) 
     pickingForDay?.let { dayId ->
         ExercisePickerDialog(vm, onSelect = { id, _ ->
             updateDay(dayId) { d ->
-                d.copy(exercises = d.exercises + WorkoutExercise(id = nanoid(), exerciseId = id, sets = 3, repMin = 8, repMax = 12, restSeconds = 90, initialWeight = 0.0, order = d.exercises.size))
+                d.copy(exercises = d.exercises + WorkoutExercise(id = newId(), exerciseId = id, sets = 3, repMin = 8, repMax = 12, restSeconds = 90, initialWeight = 0.0, order = d.exercises.size))
             }
             pickingForDay = null
         }, onClose = { pickingForDay = null })

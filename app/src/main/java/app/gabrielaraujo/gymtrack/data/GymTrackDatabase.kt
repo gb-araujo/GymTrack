@@ -5,7 +5,16 @@ import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
+import androidx.room.migration.Migration
 
+/**
+ * Banco local. O schema de cada versão fica versionado em `app/schemas/` (exportSchema).
+ *
+ * Ao mudar qualquer @Entity: suba [VERSION], rode o build para gerar o novo JSON em
+ * `app/schemas/`, commite-o e adicione a migração correspondente em [MIGRATIONS]
+ * (ou um `@AutoMigration` quando a mudança for só aditiva). Não existe fallback
+ * destrutivo: sem migração o app falha em vez de apagar os treinos do usuário.
+ */
 @Database(
     entities = [
         Exercise::class,
@@ -15,18 +24,23 @@ import androidx.room.TypeConverters
         Goal::class,
         SyncMeta::class,
     ],
-    version = 2,
-    exportSchema = false,
+    version = GymTrackDatabase.VERSION,
+    exportSchema = true,
 )
 @TypeConverters(Converters::class)
 abstract class GymTrackDatabase : RoomDatabase() {
     abstract fun dao(): GymTrackDao
 
     companion object {
+        const val VERSION = 2
+        const val NAME = "track.db"
+
+        /** Migrações manuais entre versões (ex.: `Migration(2, 3) { db -> db.execSQL(...) }`). */
+        val MIGRATIONS: Array<Migration> = arrayOf()
+
         fun build(context: Context): GymTrackDatabase =
-            Room.databaseBuilder(context, GymTrackDatabase::class.java, "track.db")
-                // App ainda não publicado: recriar em mudança de schema é aceitável.
-                .fallbackToDestructiveMigration()
+            Room.databaseBuilder(context, GymTrackDatabase::class.java, NAME)
+                .addMigrations(*MIGRATIONS)
                 .build()
     }
 }

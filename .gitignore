@@ -20,3 +20,4 @@ build/
 *.jks
 *.keystore
 google-services.json
+keystore.properties

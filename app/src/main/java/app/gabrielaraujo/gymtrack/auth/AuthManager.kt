@@ -23,23 +23,25 @@ import kotlinx.coroutines.tasks.await
  * a partir do `google-services.json` — só existe se o provedor Google estiver habilitado
  * no console e um SHA-1 cadastrado.
  */
-class AuthManager {
+class AuthManager : AuthGateway {
     private val auth: FirebaseAuth = Firebase.auth
-    private val _user = MutableStateFlow(auth.currentUser)
-    val user: StateFlow<FirebaseUser?> = _user.asStateFlow()
+    private val _user = MutableStateFlow(auth.currentUser?.toAppUser())
+    override val user: StateFlow<AppUser?> = _user.asStateFlow()
 
-    val currentUid: String? get() = auth.currentUser?.uid
+    override val currentUid: String? get() = auth.currentUser?.uid
 
     init {
-        auth.addAuthStateListener { fb -> _user.value = fb.currentUser }
+        auth.addAuthStateListener { fb -> _user.value = fb.currentUser?.toAppUser() }
     }
+
+    private fun FirebaseUser.toAppUser() = AppUser(uid, displayName, email)
 
     private fun webClientId(context: Context): String? {
         val resId = context.resources.getIdentifier("default_web_client_id", "string", context.packageName)
         return if (resId == 0) null else context.getString(resId)
     }
 
-    suspend fun signInWithGoogle(activity: Activity): Result<Unit> {
+    override suspend fun signInWithGoogle(activity: Activity): Result<Unit> {
         val clientId = webClientId(activity)
             ?: return Result.failure(
                 IllegalStateException(
@@ -71,5 +73,5 @@ class AuthManager {
         }
     }
 
-    fun signOut() = auth.signOut()
+    override fun signOut() = auth.signOut()
 }

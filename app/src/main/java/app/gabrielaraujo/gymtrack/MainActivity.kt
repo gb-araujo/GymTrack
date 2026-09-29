@@ -17,7 +17,7 @@ class MainActivity : ComponentActivity() {
         setContent {
             GymTrackTheme {
                 val vm: GymTrackViewModel = viewModel(
-                    factory = GymTrackViewModel.factory(app.repository, app.authManager, app.syncEngine),
+                    factory = GymTrackViewModel.factory(app.repository, app.authManager, app.syncEngine, app.restTimerAlerts, app.healthConnect),
                 )
                 GymTrackApp(vm)
             }

@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">GymTrack</string>
+    <string name="widget_description">Sua ofensiva e o próximo treino</string>
 </resources>

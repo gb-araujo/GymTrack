@@ -35,13 +35,6 @@ jobs:
             cp .github/ci/google-services.placeholder.json app/google-services.json
           fi
 
-      - name: Versões disponíveis (temporário)
-        run: |
-          for a in androidx/health/connect/connect-client org/robolectric/robolectric androidx/test/core-ktx; do
-            echo "== $a"; curl -s https://dl.google.com/android/maven2/$a/maven-metadata.xml | grep -o '<version>[^<]*' | tail -8
-            curl -s https://repo1.maven.org/maven2/$a/maven-metadata.xml | grep -o '<version>[^<]*' | tail -5
-          done
-
       - name: Testes unitários
         run: ./gradlew --stacktrace :app:testDebugUnitTest
 

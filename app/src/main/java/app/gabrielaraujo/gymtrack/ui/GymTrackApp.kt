@@ -66,7 +66,7 @@ fun GymTrackApp(vm: GymTrackViewModel) {
     }
     // Tela de resumo após concluir a sessão.
     if (active != null && active.session.completed) {
-        app.gabrielaraujo.gymtrack.ui.screens.SessionSummaryScreen(vm) { vm.abandonSession() }
+        app.gabrielaraujo.gymtrack.ui.screens.SessionSummaryScreen(vm) { vm.dismissSummary() }
         return
     }
 

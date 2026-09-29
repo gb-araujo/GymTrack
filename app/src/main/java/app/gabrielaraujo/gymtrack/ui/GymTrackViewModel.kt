@@ -22,6 +22,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
@@ -69,6 +71,9 @@ class GymTrackViewModel(
 
     private var restJob: Job? = null
     private var syncJob: Job? = null
+
+    /** Serializa as gravações da sessão ativa para que um snapshot antigo nunca sobrescreva a sessão concluída. */
+    private val sessionWriteLock = Mutex()
 
     private val nowMs get() = System.currentTimeMillis()
     private val uid get() = authManager.currentUid
@@ -319,7 +324,12 @@ class GymTrackViewModel(
         val session = _state.value.activeSession?.session ?: return
         if (session.completed) return
         viewModelScope.launch {
-            repo.upsertSession(session.copy(updatedAt = nowMs, ownerId = uid, dirty = false))
+            sessionWriteLock.withLock {
+                // A sessão pode ter sido concluída ou descartada enquanto esta gravação aguardava.
+                val current = _state.value.activeSession?.session
+                if (current == null || current.id != session.id || current.completed) return@withLock
+                repo.upsertSession(session.copy(updatedAt = nowMs, ownerId = uid, dirty = false))
+            }
         }
     }
 
@@ -401,9 +411,20 @@ class GymTrackViewModel(
 
     fun abandonSession() {
         stopRestTimer()
-        val id = _state.value.activeSession?.session?.id
+        val session = _state.value.activeSession?.session
         _state.update { it.copy(activeSession = null) }
-        if (id != null) viewModelScope.launch { repo.deleteSession(id) }
+        // Nunca apaga um treino já concluído: ele pertence ao histórico.
+        if (session != null && !session.completed) {
+            viewModelScope.launch { sessionWriteLock.withLock { repo.deleteSession(session.id) } }
+        }
+    }
+
+    /** Fecha a tela de resumo mantendo o treino concluído salvo no histórico. */
+    fun dismissSummary() {
+        stopRestTimer()
+        _state.update { st ->
+            if (st.activeSession?.session?.completed == true) st.copy(activeSession = null) else st
+        }
     }
 
     fun completeSession() = viewModelScope.launch {
@@ -461,7 +482,11 @@ class GymTrackViewModel(
             updatedAt = endTime,
             dirty = true,
         )
-        repo.upsertSession(completed)
+        sessionWriteLock.withLock {
+            repo.upsertSession(completed)
+            // Marca como concluída já dentro do lock: gravações pendentes da sessão em andamento são ignoradas.
+            _state.update { it.copy(activeSession = active.copy(session = completed)) }
+        }
 
         // Próximo sugerido segue o treino que foi realmente feito.
         val doneIndex = plan.days.indexOfFirst { it.id == completed.workoutDayId }

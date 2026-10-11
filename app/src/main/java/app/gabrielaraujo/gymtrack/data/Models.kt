@@ -120,6 +120,10 @@ data class WorkoutSession(
     val totalVolume: Double? = null,
     val totalSets: Int? = null,
     val prsAchieved: List<String> = emptyList(),
+    /** Dados do relógio (via Health Connect) durante o treino; null quando não há medição. */
+    val avgHeartRate: Int? = null,
+    val maxHeartRate: Int? = null,
+    val calories: Double? = null,
     override val ownerId: String? = null,
     override val updatedAt: Long = 0,
     override val dirty: Boolean = false,

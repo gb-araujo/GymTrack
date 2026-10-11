@@ -15,9 +15,11 @@ import app.gabrielaraujo.gymtrack.data.SetRecord
 import app.gabrielaraujo.gymtrack.data.WorkoutPlan
 import app.gabrielaraujo.gymtrack.data.WorkoutSession
 import app.gabrielaraujo.gymtrack.data.newId
+import app.gabrielaraujo.gymtrack.domain.BodyWeightEntry
 import app.gabrielaraujo.gymtrack.domain.StreakInfo
 import app.gabrielaraujo.gymtrack.domain.bestRecordsByExercise
 import app.gabrielaraujo.gymtrack.domain.computeStreak
+import app.gabrielaraujo.gymtrack.health.HealthDataSource
 import app.gabrielaraujo.gymtrack.health.WorkoutExporter
 import app.gabrielaraujo.gymtrack.session.RestTimerAlerts
 import app.gabrielaraujo.gymtrack.sync.CloudSync
@@ -63,6 +65,9 @@ data class UiState(
     val activeSession: ActiveSession? = null,
     val syncStatus: SyncStatus = SyncStatus.Idle,
     val pendingSync: Int = 0,
+    /** Pesagens do Health Connect (mais antiga primeiro); vazio sem a importação ligada. */
+    val bodyWeights: List<BodyWeightEntry> = emptyList(),
+    val healthImportEnabled: Boolean = false,
 )
 
 /** Dados persistidos, derivados dos Flows do Room. */
@@ -84,6 +89,7 @@ class GymTrackViewModel(
     private val sync: CloudSync,
     private val restAlerts: RestTimerAlerts = RestTimerAlerts.None,
     private val workoutExporter: WorkoutExporter = WorkoutExporter.None,
+    private val healthData: HealthDataSource = HealthDataSource.None,
     private val clock: () -> Long = System::currentTimeMillis,
 ) : ViewModel() {
     private val activeSession = MutableStateFlow<ActiveSession?>(null)
@@ -100,7 +106,12 @@ class GymTrackViewModel(
 
     private val syncInfo = combine(sync.status, repo.pendingSyncCount) { status, pending -> status to pending }
 
-    val state: StateFlow<UiState> = combine(library, activeSession, syncInfo, loaded) { lib, active, (status, pending), isLoaded ->
+    private val bodyWeights = MutableStateFlow<List<BodyWeightEntry>>(emptyList())
+    private val healthInfo = combine(bodyWeights, healthData.importEnabled) { weights, enabled ->
+        (if (enabled) weights else emptyList()) to enabled
+    }
+
+    val state: StateFlow<UiState> = combine(library, activeSession, syncInfo, loaded, healthInfo) { lib, active, (status, pending), isLoaded, (weights, importOn) ->
         UiState(
             loaded = isLoaded,
             exercises = lib.exercises,
@@ -114,6 +125,8 @@ class GymTrackViewModel(
             activeSession = active,
             syncStatus = status,
             pendingSync = pending,
+            bodyWeights = weights,
+            healthImportEnabled = importOn,
         )
     }.stateIn(viewModelScope, SharingStarted.Eagerly, UiState())
 
@@ -129,6 +142,10 @@ class GymTrackViewModel(
 
     /** Serializa as gravações da sessão ativa para que um snapshot antigo nunca sobrescreva a sessão concluída. */
     private val sessionWriteLock = Mutex()
+
+    /** Evita duas leituras simultâneas do Health Connect (e consultas repetidas a cada volta ao app). */
+    private val healthLock = Mutex()
+    private var lastHealthRefresh = 0L
 
     private val uid get() = auth.currentUid
 
@@ -349,6 +366,8 @@ class GymTrackViewModel(
         }
         scheduleSync()
         workoutExporter.export(completed)
+        // O relógio pode já ter sincronizado parte da frequência cardíaca; o resto chega nas próximas atualizações.
+        healthLock.withLock { enrichWithHealthData(completed) }
     }
 
     // ---------------- Timer de descanso ----------------
@@ -377,9 +396,50 @@ class GymTrackViewModel(
 
     // ---------------- Histórico ----------------
 
-    fun updateCompletedSession(session: WorkoutSession) = write { repo.updateCompletedSession(session, uid) }
+    fun updateCompletedSession(session: WorkoutSession) = write {
+        repo.updateCompletedSession(session, uid)
+        repo.getSession(session.id)?.let { workoutExporter.export(it) }
+    }
 
-    fun deleteCompletedSession(id: String) = write { repo.deleteCompletedSession(id, uid) }
+    fun deleteCompletedSession(id: String) = write {
+        repo.deleteCompletedSession(id, uid)
+        workoutExporter.remove(id)
+    }
+
+    // ---------------- Health Connect (relógio, Samsung Health) ----------------
+
+    /**
+     * Busca no Health Connect o peso corporal e a frequência cardíaca e as calorias dos treinos recentes.
+     * Os dados do relógio chegam com atraso (o Samsung Health sincroniza aos poucos), então os treinos dos
+     * últimos dias são consultados de novo a cada volta ao app, no máximo uma vez a cada poucos minutos.
+     * @param backfill busca também os treinos do último mês (ao ligar a importação), ignorando o intervalo.
+     */
+    fun refreshHealthData(backfill: Boolean = false) = viewModelScope.launch {
+        healthLock.withLock {
+            val now = clock()
+            if (!backfill && now - lastHealthRefresh < HEALTH_REFRESH_INTERVAL_MS) return@launch
+            if (!healthData.canRead()) {
+                bodyWeights.value = emptyList()
+                return@launch
+            }
+            lastHealthRefresh = now
+            bodyWeights.value = healthData.bodyWeights(since = now - WEIGHT_HISTORY_MS)
+            val window = if (backfill) HEALTH_BACKFILL_MS else HEALTH_RECENT_MS
+            repo.completedSessionsSnapshot()
+                .filter { (it.endTime ?: it.startTime) >= now - window }
+                .forEach { enrichWithHealthData(it) }
+        }
+    }
+
+    /** Deve rodar com [healthLock]. */
+    private suspend fun enrichWithHealthData(session: WorkoutSession) {
+        val end = session.endTime ?: return
+        val metrics = healthData.workoutMetrics(session.startTime, end) ?: return
+        val updated = repo.updateSessionHealthMetrics(session.id, metrics, uid) ?: return
+        // Mantém a tela de resumo em dia se ela ainda estiver aberta.
+        activeSession.update { if (it?.session?.id == updated.id) it.copy(session = updated) else it }
+        scheduleSync()
+    }
 
     /** Histórico de um exercício em todas as sessões concluídas (mais recentes primeiro). */
     fun exerciseHistory(exerciseId: String): List<Triple<Long, List<SetRecord>, String>> =
@@ -403,6 +463,10 @@ class GymTrackViewModel(
 
     companion object {
         const val SYNC_DEBOUNCE_MS = 1200L
+        const val HEALTH_REFRESH_INTERVAL_MS = 5 * 60_000L
+        const val HEALTH_RECENT_MS = 3 * 86_400_000L
+        const val HEALTH_BACKFILL_MS = 30 * 86_400_000L
+        const val WEIGHT_HISTORY_MS = 365 * 86_400_000L
 
         fun factory(
             repo: GymTrackRepository,
@@ -410,10 +474,11 @@ class GymTrackViewModel(
             sync: CloudSync,
             restAlerts: RestTimerAlerts,
             workoutExporter: WorkoutExporter,
+            healthData: HealthDataSource,
         ) = object : ViewModelProvider.Factory {
             @Suppress("UNCHECKED_CAST")
             override fun <T : ViewModel> create(modelClass: Class<T>): T =
-                GymTrackViewModel(repo, auth, sync, restAlerts, workoutExporter) as T
+                GymTrackViewModel(repo, auth, sync, restAlerts, workoutExporter, healthData) as T
         }
     }
 }

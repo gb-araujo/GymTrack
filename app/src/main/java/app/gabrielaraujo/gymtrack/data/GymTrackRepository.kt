@@ -3,6 +3,7 @@ package app.gabrielaraujo.gymtrack.data
 import androidx.room.withTransaction
 import app.gabrielaraujo.gymtrack.domain.BackupCodec
 import app.gabrielaraujo.gymtrack.domain.BackupTables
+import app.gabrielaraujo.gymtrack.domain.WorkoutHealthMetrics
 import app.gabrielaraujo.gymtrack.domain.diffRecords
 import app.gabrielaraujo.gymtrack.domain.recomputeRecords
 import app.gabrielaraujo.gymtrack.domain.sessionTotals
@@ -164,6 +165,23 @@ class GymTrackRepository(
         )
         recomputeRecordsLocked(uid, now)
     }
+
+    /**
+     * Grava a frequência cardíaca e as calorias medidas pelo relógio num treino concluído.
+     * Uma medida que sumiu do Health Connect não apaga a que já estava salva.
+     * @return o treino atualizado, ou null se nada mudou.
+     */
+    suspend fun updateSessionHealthMetrics(id: String, metrics: WorkoutHealthMetrics, uid: String?): WorkoutSession? =
+        db.withTransaction {
+            val session = dao.getSession(id)?.takeIf { it.completed && !it.deleted } ?: return@withTransaction null
+            val merged = session.copy(
+                avgHeartRate = metrics.avgHeartRate ?: session.avgHeartRate,
+                maxHeartRate = metrics.maxHeartRate ?: session.maxHeartRate,
+                calories = metrics.calories ?: session.calories,
+            )
+            if (merged == session) return@withTransaction null
+            merged.copy(updatedAt = clock(), dirty = true, ownerId = uid ?: session.ownerId).also { dao.upsertSession(it) }
+        }
 
     /** Exclui um treino do histórico (tombstone, para propagar) e recalcula os recordes. */
     suspend fun deleteCompletedSession(id: String, uid: String?) = db.withTransaction {

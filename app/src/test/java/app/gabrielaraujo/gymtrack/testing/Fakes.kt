@@ -7,10 +7,16 @@ import androidx.test.core.app.ApplicationProvider
 import app.gabrielaraujo.gymtrack.auth.AppUser
 import app.gabrielaraujo.gymtrack.auth.AuthGateway
 import app.gabrielaraujo.gymtrack.data.GymTrackDatabase
+import app.gabrielaraujo.gymtrack.data.WorkoutSession
+import app.gabrielaraujo.gymtrack.domain.BodyWeightEntry
+import app.gabrielaraujo.gymtrack.domain.WorkoutHealthMetrics
+import app.gabrielaraujo.gymtrack.health.HealthDataSource
+import app.gabrielaraujo.gymtrack.health.WorkoutExporter
 import app.gabrielaraujo.gymtrack.sync.CloudSync
 import app.gabrielaraujo.gymtrack.sync.SyncStatus
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import java.util.Collections
 
 class FakeAuth(uid: String? = null) : AuthGateway {
     override val user = MutableStateFlow(uid?.let { AppUser(it, "Teste", "teste@example.com") })
@@ -25,6 +31,25 @@ class FakeSync : CloudSync {
     override suspend fun onLogin(uid: String) { syncs++ }
     override suspend fun sync(uid: String) { syncs++ }
     override fun reset() = Unit
+}
+
+/** Registra o que seria enviado ao Health Connect. */
+class FakeExporter : WorkoutExporter {
+    val exported: MutableList<WorkoutSession> = Collections.synchronizedList(mutableListOf())
+    val removed: MutableList<String> = Collections.synchronizedList(mutableListOf())
+    override suspend fun export(session: WorkoutSession) { exported += session }
+    override suspend fun remove(sessionId: String) { removed += sessionId }
+}
+
+/** Health Connect com a importação ligada, devolvendo as medidas e pesagens configuradas. */
+class FakeHealthData(
+    @Volatile var metrics: WorkoutHealthMetrics? = null,
+    @Volatile var weights: List<BodyWeightEntry> = emptyList(),
+) : HealthDataSource {
+    override val importEnabled = MutableStateFlow(true)
+    override suspend fun canRead() = importEnabled.value
+    override suspend fun workoutMetrics(startTime: Long, endTime: Long) = metrics
+    override suspend fun bodyWeights(since: Long) = weights.filter { it.time >= since }
 }
 
 /** Relógio controlável, começando perto de "agora" para a ofensiva (que usa a data de hoje). */

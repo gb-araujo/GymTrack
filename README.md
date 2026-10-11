@@ -9,7 +9,7 @@ Offline-first: tudo fica no aparelho (Room) e, com login Google, sincroniza com 
 - **Room** para persistência local (`track.db`), com o schema versionado em `app/schemas/`
 - **kotlinx.serialization** para as estruturas aninhadas (dias/séries) e para backup/sincronização
 - **Firebase Auth** (login Google via Credential Manager) + **Cloud Firestore** para sincronização
-- **Health Connect** para registrar os treinos no Google Fit e similares (opcional)
+- **Health Connect** para trocar dados com o Samsung Health, Google Fit e similares (opcional)
 - `ViewModel` + `StateFlow` alimentados por `Flow`s do Room (MVVM)
 - `minSdk` 26 · `targetSdk` 35 · `compileSdk` 36
 
@@ -25,14 +25,42 @@ Offline-first: tudo fica no aparelho (Room) e, com login Google, sincroniza com 
   e avisa com vibração e notificação quando acaba
 - **Histórico** — sessões agrupadas por mês; cada treino pode ser **editado** ou **excluído**
   (volume, recordes e ofensiva são recalculados)
-- **Progresso** — recordes, evolução de carga, volume e frequência (gráficos em Canvas)
-- **Metas** — metas de treinos/frequência/volume com barra de progresso
+- **Progresso** — recordes, evolução de carga, volume, frequência e peso corporal (gráficos em Canvas)
+- **Metas** — metas de treinos/frequência/volume/peso corporal com barra de progresso
+- **Samsung Health / Health Connect** — veja abaixo
 - **Conta** — login Google, status da sincronização (pendências/erros) e "Sincronizar agora"
 - **Backup** — exporta/importa tudo (fichas, histórico, recordes, metas, exercícios personalizados)
   em JSON; também importa o backup do app web antigo
 - **Widget** — ofensiva e próximo treino na tela inicial
 
 Na primeira execução, o banco é semeado com ~45 exercícios e uma ficha exemplo "Hipertrofia" (A/B/C).
+
+## Samsung Health e Health Connect
+
+Não há integração direta com o Samsung Health: ele sincroniza com o **Health Connect** nos dois
+sentidos, e o GymTrack lê e grava lá. As duas opções ficam na tela de conta e são independentes:
+
+- **Enviar treinos concluídos** — grava cada treino como `ExerciseSessionRecord` (treino de força,
+  com as séries nas notas). Edições e exclusões do histórico também são enviadas. A tela mostra o
+  resultado do último envio.
+- **Importar do relógio** — lê a frequência cardíaca (média/máxima) e as calorias medidas durante o
+  treino e o peso corporal. As medidas ficam salvas no treino (resumo e histórico) e sincronizam; o
+  peso alimenta a aba "Peso" do Progresso e as metas de peso corporal. Como o Galaxy Watch sincroniza
+  com atraso, os treinos dos últimos 3 dias são consultados de novo sempre que o app volta ao primeiro
+  plano (no máximo a cada 5 min); ao ligar a importação, o último mês inteiro é buscado.
+
+Para os treinos aparecerem no Samsung Health, ele precisa ter permissão para **ler "Exercício"** no
+Health Connect e a sincronização ligada em Samsung Health › Configurações › Health Connect. O app traz
+esse passo a passo, com atalhos, quando o Samsung Health está instalado.
+
+Limitações:
+
+- O Samsung Health só grava calorias no Health Connect para exercícios registrados nele (ex.: um treino
+  iniciado no relógio). Sem isso, o treino do GymTrack fica sem calorias.
+- A frequência cardíaca depende de quantas medições o relógio fez: com a medição a cada 10 minutos,
+  um treino pode ter menos de 3 medições e ficar sem FC. Medir continuamente resolve.
+- A leitura só é permitida com o app em primeiro plano, e o Health Connect só libera dados de até
+  30 dias antes da primeira permissão.
 
 ## Build
 
@@ -101,7 +129,7 @@ app/src/main/java/app/gabrielaraujo/gymtrack/
 ├── domain/      # regras puras e testáveis: ofensiva, recordes, backup
 ├── sync/        # SyncEngine (Firestore) e status da sincronização
 ├── session/     # timer de descanso (foreground service)
-├── health/      # integração com o Health Connect
+├── health/      # Health Connect (envio de treinos, leitura do relógio) e atalhos do Samsung Health
 ├── widget/      # widget da tela inicial
 └── ui/
     ├── theme/        # paleta, tipografia, tema

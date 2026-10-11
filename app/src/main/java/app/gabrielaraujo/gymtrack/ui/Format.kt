@@ -72,3 +72,19 @@ fun formatVolume(volume: Double?): String {
 /** Remove ".0" de pesos inteiros para exibição (60.0 → "60", 62.5 → "62.5"). */
 fun formatWeight(weight: Double): String =
     if (weight == weight.toLong().toDouble()) weight.toLong().toString() else weight.toString()
+
+/** Frequência cardíaca → "128 bpm". */
+fun formatHeartRate(bpm: Int): String = "$bpm bpm"
+
+/** Calorias → "312 kcal". */
+fun formatCalories(kcal: Double): String = "${kcal.roundToInt()} kcal"
+
+/** Peso corporal com uma casa decimal → "80.4 kg". */
+fun formatBodyWeight(kg: Double): String = "${formatWeight((kg * 10).roundToInt() / 10.0)} kg"
+
+/** Medidas do relógio de um treino, na ordem de exibição (só as que existem). */
+fun watchStats(avgHeartRate: Int?, maxHeartRate: Int?, calories: Double?): List<Pair<String, String>> = listOfNotNull(
+    avgHeartRate?.let { "FC média" to formatHeartRate(it) },
+    maxHeartRate?.let { "FC máx." to formatHeartRate(it) },
+    calories?.let { "Calorias" to formatCalories(it) },
+)

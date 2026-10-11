@@ -49,6 +49,7 @@ import app.gabrielaraujo.gymtrack.ui.formatDuration
 import app.gabrielaraujo.gymtrack.ui.formatFullDate
 import app.gabrielaraujo.gymtrack.ui.formatVolume
 import app.gabrielaraujo.gymtrack.ui.formatWeight
+import app.gabrielaraujo.gymtrack.ui.watchStats
 import app.gabrielaraujo.gymtrack.ui.theme.TC
 import kotlin.math.roundToInt
 
@@ -96,6 +97,15 @@ fun HistoryDetailScreen(vm: GymTrackViewModel, sessionId: String, onBack: () -> 
                     MiniStat("Exercícios", session.exercises.size.toString(), Modifier.weight(1f))
                     MiniStat("Séries", (session.totalSets ?: 0).toString(), Modifier.weight(1f))
                     MiniStat("Volume", formatVolume(session.totalVolume), Modifier.weight(1f))
+                }
+            }
+
+            val watch = watchStats(session.avgHeartRate, session.maxHeartRate, session.calories)
+            if (watch.isNotEmpty()) {
+                item {
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        watch.forEach { (label, value) -> MiniStat(label, value, Modifier.weight(1f)) }
+                    }
                 }
             }
 

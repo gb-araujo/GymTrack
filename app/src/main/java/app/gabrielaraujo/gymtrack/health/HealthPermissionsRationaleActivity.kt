@@ -10,6 +10,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -25,15 +27,23 @@ class HealthPermissionsRationaleActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         setContent {
             GymTrackTheme {
-                Column(Modifier.fillMaxSize().background(TC.Background).statusBarsPadding().padding(24.dp)) {
+                Column(
+                    Modifier.fillMaxSize().background(TC.Background).statusBarsPadding()
+                        .verticalScroll(rememberScrollState()).padding(24.dp),
+                ) {
                     Text("GymTrack e Health Connect", color = TC.White, fontSize = 22.sp, fontWeight = FontWeight.Bold)
                     Spacer(Modifier.height(16.dp))
                     Text(
-                        "O GymTrack só grava no Health Connect as sessões de treino que você conclui no app " +
-                            "(início, fim, tipo \"treino de força\" e os exercícios feitos), para que apareçam no " +
-                            "Google Fit e em outros apps de saúde. O GymTrack não lê nenhum dado de saúde seu.\n\n" +
-                            "Você pode desligar a integração a qualquer momento na tela de conta do app ou revogar " +
-                            "a permissão nas configurações do Health Connect.",
+                        "Enviar treinos: o GymTrack grava no Health Connect as sessões de treino que você conclui " +
+                            "no app (início, fim, tipo \"treino de força\" e as séries feitas), para que apareçam no " +
+                            "Samsung Health, no Google Fit e em outros apps de saúde.\n\n" +
+                            "Importar do relógio: o GymTrack lê a frequência cardíaca e as calorias registradas durante " +
+                            "cada treino (ex.: pelo Galaxy Watch, via Samsung Health) e guarda no treino, para mostrar no " +
+                            "resumo e no histórico. Também lê o seu peso corporal, para o progresso e as metas. Nenhum " +
+                            "outro dado de saúde é lido. Com o login ligado, os treinos (inclusive essas medidas) são " +
+                            "sincronizados só com a sua conta do GymTrack.\n\n" +
+                            "As duas opções são independentes. Você pode desligá-las a qualquer momento na tela de conta " +
+                            "do app ou revogar as permissões nas configurações do Health Connect.",
                         color = TC.Slate300, fontSize = 15.sp,
                     )
                     Spacer(Modifier.height(24.dp))

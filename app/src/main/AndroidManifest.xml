@@ -8,11 +8,18 @@
     <uses-permission android:name="android.permission.WAKE_LOCK" />
     <uses-permission android:name="android.permission.VIBRATE" />
 
-    <!-- Health Connect: só grava sessões de treino -->
+    <!-- Health Connect: grava as sessões de treino (Samsung Health, Google Fit etc. leem de lá) -->
     <uses-permission android:name="android.permission.health.WRITE_EXERCISE" />
+    <!-- Health Connect: lê o que o relógio mediu durante o treino e o peso corporal (opt-in) -->
+    <uses-permission android:name="android.permission.health.READ_HEART_RATE" />
+    <uses-permission android:name="android.permission.health.READ_ACTIVE_CALORIES_BURNED" />
+    <uses-permission android:name="android.permission.health.READ_TOTAL_CALORIES_BURNED" />
+    <uses-permission android:name="android.permission.health.READ_WEIGHT" />
 
     <queries>
         <package android:name="com.google.android.apps.healthdata" />
+        <!-- Samsung Health: atalho e passo a passo da integração via Health Connect -->
+        <package android:name="com.sec.android.app.shealth" />
     </queries>
 
     <application

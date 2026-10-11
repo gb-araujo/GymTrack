@@ -5,16 +5,22 @@ import androidx.lifecycle.viewModelScope
 import app.gabrielaraujo.gymtrack.data.GymTrackDatabase
 import app.gabrielaraujo.gymtrack.data.GymTrackRepository
 import app.gabrielaraujo.gymtrack.data.WorkoutSession
+import app.gabrielaraujo.gymtrack.domain.BodyWeightEntry
+import app.gabrielaraujo.gymtrack.domain.WorkoutHealthMetrics
+import app.gabrielaraujo.gymtrack.health.HealthDataSource
 import app.gabrielaraujo.gymtrack.testing.FakeAuth
+import app.gabrielaraujo.gymtrack.testing.FakeExporter
+import app.gabrielaraujo.gymtrack.testing.FakeHealthData
 import app.gabrielaraujo.gymtrack.testing.FakeSync
 import app.gabrielaraujo.gymtrack.testing.TestClock
 import app.gabrielaraujo.gymtrack.testing.inMemoryDb
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExecutorCoroutineDispatcher
 import kotlinx.coroutines.asCoroutineDispatcher
-import kotlinx.coroutines.cancel
+import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.job
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.setMain
@@ -52,13 +58,19 @@ class GymTrackViewModelTest {
 
     @After
     fun tearDown() {
-        vms.forEach { it.viewModelScope.cancel() }
+        // Espera as corrotinas dos ViewModels terminarem: uma ainda rodando poderia ler o
+        // Dispatchers.Main enquanto o próximo teste o troca (IllegalStateException no setMain).
+        runBlocking { vms.forEach { it.viewModelScope.coroutineContext.job.cancelAndJoin() } }
         db.close()
         Dispatchers.resetMain()
         main.close()
     }
 
-    private fun newVm() = GymTrackViewModel(repo, FakeAuth(), FakeSync(), clock = clock).also { vms += it }
+    private fun newVm(
+        exporter: FakeExporter = FakeExporter(),
+        health: HealthDataSource = HealthDataSource.None,
+    ) = GymTrackViewModel(repo, FakeAuth(), FakeSync(), workoutExporter = exporter, healthData = health, clock = clock)
+        .also { vms += it }
 
     private fun GymTrackViewModel.await(predicate: (UiState) -> Boolean): UiState =
         runBlocking { withTimeout(10_000) { state.first(predicate) } }
@@ -187,5 +199,58 @@ class GymTrackViewModelTest {
         vm.stopRestTimer()
         val stopped = vm.await { it.activeSession?.restEndsAt == null }
         assertNotNull(stopped.activeSession)
+    }
+
+    @Test
+    fun `treino concluido vai para o Health Connect e edicao e exclusao tambem`() {
+        val exporter = FakeExporter()
+        val vm = newVm(exporter = exporter)
+        val done = vm.doWorkout()
+        assertEquals(done.id, eventually { exporter.exported.singleOrNull() }.id)
+
+        val saved = vm.await { it.sessions.size == 1 }.sessions.single()
+        vm.updateCompletedSession(saved.copy(exercises = saved.exercises.drop(1)))
+        val edited = eventually { exporter.exported.getOrNull(1) }
+        assertEquals(done.id, edited.id)
+        assertEquals(saved.exercises.size - 1, edited.exercises.size)
+
+        vm.deleteCompletedSession(done.id)
+        assertEquals(done.id, eventually { exporter.removed.singleOrNull() })
+    }
+
+    @Test
+    fun `frequencia cardiaca e calorias do relogio entram no treino`() {
+        val health = FakeHealthData(metrics = WorkoutHealthMetrics(avgHeartRate = 128, maxHeartRate = 171, calories = 315.0))
+        val vm = newVm(health = health)
+        val done = vm.doWorkout()
+
+        val saved = vm.await { it.sessions.singleOrNull()?.avgHeartRate != null }.sessions.single()
+        assertEquals(done.id, saved.id)
+        assertEquals(171, saved.maxHeartRate)
+        assertEquals(315.0, saved.calories!!, 0.0)
+        // Entra na fila de sincronização sem mexer nos totais nem nos recordes.
+        val stored = runBlocking { repo.getSession(done.id) }!!
+        assertTrue(stored.dirty)
+        assertEquals(done.totalVolume, stored.totalVolume)
+        assertEquals(done.prsAchieved, stored.prsAchieved)
+    }
+
+    @Test
+    fun `dados do relogio que chegam depois sao buscados ao voltar ao app`() {
+        val health = FakeHealthData(metrics = null)
+        val vm = newVm(health = health)
+        val done = vm.doWorkout()
+        assertNull(vm.await { it.sessions.size == 1 }.sessions.single().avgHeartRate)
+
+        // O Samsung Health sincronizou depois; a próxima volta ao app (após o intervalo mínimo) busca de novo.
+        health.metrics = WorkoutHealthMetrics(avgHeartRate = 120)
+        health.weights = listOf(BodyWeightEntry(clock.now - 86_400_000, 81.2), BodyWeightEntry(clock.now, 80.6))
+        clock.advanceMinutes(10)
+        vm.refreshHealthData()
+
+        val state = vm.await { it.sessions.singleOrNull()?.avgHeartRate == 120 && it.bodyWeights.size == 2 }
+        assertEquals(done.id, state.sessions.single().id)
+        assertEquals(80.6, state.bodyWeights.last().kg, 0.0)
+        assertTrue(state.healthImportEnabled)
     }
 }

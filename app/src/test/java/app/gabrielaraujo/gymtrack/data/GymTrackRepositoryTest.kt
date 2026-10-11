@@ -1,12 +1,14 @@
 package app.gabrielaraujo.gymtrack.data
 
 import android.app.Application
+import app.gabrielaraujo.gymtrack.domain.WorkoutHealthMetrics
 import app.gabrielaraujo.gymtrack.testing.TestClock
 import app.gabrielaraujo.gymtrack.testing.inMemoryDb
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -102,5 +104,30 @@ class GymTrackRepositoryTest {
         } finally {
             other.close()
         }
+    }
+
+    @Test
+    fun `medidas do relogio sao gravadas sem apagar as que ja existiam`() = runBlocking {
+        val s = session()
+        val done = repo.completeSession(s, null)
+        repo.dao.upsertSession(done.copy(dirty = false))
+
+        clock.advanceMinutes(5)
+        val first = repo.updateSessionHealthMetrics(s.id, WorkoutHealthMetrics(avgHeartRate = 130, maxHeartRate = 170), uid = "u1")!!
+        assertEquals(130, first.avgHeartRate)
+        assertTrue(first.dirty)
+        assertEquals(clock.now, first.updatedAt)
+
+        // Calorias chegam depois; a frequência cardíaca que não veio desta vez continua salva.
+        val second = repo.updateSessionHealthMetrics(s.id, WorkoutHealthMetrics(calories = 280.0), uid = "u1")!!
+        assertEquals(130, second.avgHeartRate)
+        assertEquals(280.0, second.calories!!, 0.0)
+
+        // Nada mudou: não regrava (nem marca para sincronizar de novo).
+        assertNull(repo.updateSessionHealthMetrics(s.id, WorkoutHealthMetrics(calories = 280.0), uid = "u1"))
+        // Treino em andamento não recebe medidas.
+        val inProgress = session()
+        repo.saveSessionInProgress(inProgress, null)
+        assertNull(repo.updateSessionHealthMetrics(inProgress.id, WorkoutHealthMetrics(avgHeartRate = 100), null))
     }
 }

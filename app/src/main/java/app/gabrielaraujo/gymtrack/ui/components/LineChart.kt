@@ -16,19 +16,23 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import app.gabrielaraujo.gymtrack.ui.theme.TC
 
-/** Gráfico de linha minimalista desenhado em Canvas (substitui o recharts do web). */
+/**
+ * Gráfico de linha minimalista desenhado em Canvas (substitui o recharts do web).
+ * @param baseline valor na base do gráfico (ex.: um pouco abaixo do menor peso, para a variação aparecer).
+ */
 @Composable
 fun LineChart(
     values: List<Float>,
     modifier: Modifier = Modifier,
     height: Dp = 160.dp,
     color: Color = TC.Indigo500,
+    baseline: Float = 0f,
 ) {
     Column(modifier.fillMaxWidth()) {
         Canvas(Modifier.fillMaxWidth().height(height).padding(vertical = 8.dp)) {
             if (values.isEmpty()) return@Canvas
-            val maxV = (values.maxOrNull() ?: 0f).coerceAtLeast(1f)
-            val minV = 0f
+            val minV = baseline
+            val maxV = (values.maxOrNull() ?: 0f).coerceAtLeast(minV + 1f)
             val w = size.width
             val h = size.height
             val stepX = if (values.size > 1) w / (values.size - 1) else 0f

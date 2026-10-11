@@ -1,6 +1,7 @@
 package app.gabrielaraujo.gymtrack.data
 
 import android.content.Context
+import androidx.room.AutoMigration
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
@@ -26,13 +27,17 @@ import androidx.room.migration.Migration
     ],
     version = GymTrackDatabase.VERSION,
     exportSchema = true,
+    autoMigrations = [
+        // 3: frequência cardíaca e calorias do treino (colunas novas, anuláveis)
+        AutoMigration(from = 2, to = 3),
+    ],
 )
 @TypeConverters(Converters::class)
 abstract class GymTrackDatabase : RoomDatabase() {
     abstract fun dao(): GymTrackDao
 
     companion object {
-        const val VERSION = 2
+        const val VERSION = 3
         const val NAME = "track.db"
 
         /** Migrações manuais entre versões (ex.: `Migration(2, 3) { db -> db.execSQL(...) }`). */

@@ -12,12 +12,14 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.EmojiEvents
+import androidx.compose.material.icons.filled.MonitorWeight
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -33,15 +35,21 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import app.gabrielaraujo.gymtrack.domain.BodyWeightEntry
 import app.gabrielaraujo.gymtrack.ui.GymTrackViewModel
 import app.gabrielaraujo.gymtrack.ui.components.LineChart
+import app.gabrielaraujo.gymtrack.ui.formatBodyWeight
+import app.gabrielaraujo.gymtrack.ui.formatDate
+import app.gabrielaraujo.gymtrack.ui.formatShortDateTime
 import app.gabrielaraujo.gymtrack.ui.formatWeight
 import app.gabrielaraujo.gymtrack.ui.theme.TC
 import java.util.Calendar
+import kotlin.math.abs
+import kotlin.math.floor
 import kotlin.math.max
 import kotlin.math.roundToInt
 
-private enum class ProgressTab { RECORDS, VOLUME, FREQUENCY }
+private enum class ProgressTab { RECORDS, VOLUME, FREQUENCY, WEIGHT }
 
 @Composable
 fun ProgressScreen(vm: GymTrackViewModel) {
@@ -71,6 +79,10 @@ fun ProgressScreen(vm: GymTrackViewModel) {
                 TabBtn("PRs", Icons.Default.EmojiEvents, tab == ProgressTab.RECORDS, Modifier.weight(1f)) { tab = ProgressTab.RECORDS }
                 TabBtn("Volume", Icons.Default.BarChart, tab == ProgressTab.VOLUME, Modifier.weight(1f)) { tab = ProgressTab.VOLUME }
                 TabBtn("Frequência", Icons.AutoMirrored.Filled.TrendingUp, tab == ProgressTab.FREQUENCY, Modifier.weight(1f)) { tab = ProgressTab.FREQUENCY }
+                // Pesagens do Health Connect (balança, relógio ou Samsung Health), quando a importação está ligada.
+                if (state.bodyWeights.isNotEmpty() || tab == ProgressTab.WEIGHT) {
+                    TabBtn("Peso", Icons.Default.MonitorWeight, tab == ProgressTab.WEIGHT, Modifier.weight(1f)) { tab = ProgressTab.WEIGHT }
+                }
             }
         }
 
@@ -135,8 +147,41 @@ fun ProgressScreen(vm: GymTrackViewModel) {
                 item { StatRow("Total de treinos", state.totalWorkouts.toString()) }
                 item { StatRow("Melhor semana", "${weekly.maxOrNull() ?: 0} treinos") }
             }
+            ProgressTab.WEIGHT -> {
+                val weights = state.bodyWeights
+                if (weights.isEmpty()) {
+                    item { EmptyState(Icons.Default.MonitorWeight, "Sem pesagens", "Ligue \"Importar do relógio\" na tela de conta") }
+                } else {
+                    weightItems(weights)
+                }
+            }
         }
     }
+}
+
+private fun LazyListScope.weightItems(weights: List<BodyWeightEntry>) {
+    val latest = weights.last()
+    val recent = weights.takeLast(30)
+    item {
+        Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(TC.Slate900).padding(16.dp)) {
+            Text("Peso corporal (kg)", color = TC.Slate300, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+            LineChart(
+                recent.map { it.kg.toFloat() },
+                height = 180.dp,
+                color = TC.Emerald500,
+                baseline = floor(recent.minOf { it.kg }.toFloat()) - 1f,
+            )
+        }
+    }
+    item { StatRow("Atual", formatBodyWeight(latest.kg)) }
+    // Compara com a pesagem de ~30 dias atrás (ou a mais antiga disponível).
+    val reference = weights.lastOrNull { it.time <= latest.time - 30L * 86_400_000 } ?: weights.first()
+    if (reference !== latest) {
+        val diff = latest.kg - reference.kg
+        val sign = if (diff > 0) "+" else if (diff < 0) "−" else ""
+        item { StatRow("Desde ${formatDate(reference.time, "d MMM")}", "$sign${formatBodyWeight(abs(diff))}") }
+    }
+    item { StatRow("Última pesagem", formatShortDateTime(latest.time)) }
 }
 
 @Composable

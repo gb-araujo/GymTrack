@@ -33,6 +33,7 @@ import app.gabrielaraujo.gymtrack.ui.components.GymTrackButton
 import app.gabrielaraujo.gymtrack.ui.formatDuration
 import app.gabrielaraujo.gymtrack.ui.formatVolume
 import app.gabrielaraujo.gymtrack.ui.formatWeight
+import app.gabrielaraujo.gymtrack.ui.watchStats
 import app.gabrielaraujo.gymtrack.ui.theme.TC
 
 @Composable
@@ -59,6 +60,20 @@ fun SessionSummaryScreen(vm: GymTrackViewModel, onFinish: () -> Unit) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             SummaryStat("Séries", (session.totalSets ?: 0).toString(), Modifier.weight(1f))
             SummaryStat("Volume", formatVolume(session.totalVolume), Modifier.weight(1f))
+        }
+
+        val watch = watchStats(session.avgHeartRate, session.maxHeartRate, session.calories)
+        if (watch.isNotEmpty()) {
+            Spacer(Modifier.height(12.dp))
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                watch.forEach { (label, value) -> SummaryStat(label, value, Modifier.weight(1f), small = watch.size > 2) }
+            }
+        } else if (state.healthImportEnabled) {
+            Spacer(Modifier.height(12.dp))
+            Text(
+                "Treinou com relógio? A frequência cardíaca e as calorias aparecem aqui e no histórico quando o Samsung Health sincronizar.",
+                color = TC.Slate500, fontSize = 12.sp, textAlign = TextAlign.Center,
+            )
         }
 
         if (prs.isNotEmpty()) {
@@ -97,9 +112,9 @@ fun SessionSummaryScreen(vm: GymTrackViewModel, onFinish: () -> Unit) {
 }
 
 @Composable
-private fun SummaryStat(label: String, value: String, modifier: Modifier = Modifier) {
+private fun SummaryStat(label: String, value: String, modifier: Modifier = Modifier, small: Boolean = false) {
     Column(modifier.clip(RoundedCornerShape(16.dp)).background(TC.Slate900).padding(16.dp)) {
         Text(label, color = TC.Slate400, fontSize = 12.sp)
-        Text(value, color = TC.White, fontSize = 24.sp, fontWeight = FontWeight.Black, textAlign = TextAlign.Start)
+        Text(value, color = TC.White, fontSize = if (small) 18.sp else 24.sp, fontWeight = FontWeight.Black, textAlign = TextAlign.Start)
     }
 }

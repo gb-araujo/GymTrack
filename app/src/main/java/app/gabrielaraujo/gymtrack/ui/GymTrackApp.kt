@@ -27,6 +27,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.LifecycleStartEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.NavHost
@@ -57,6 +58,13 @@ private val tabs = listOf(
 fun GymTrackApp(vm: GymTrackViewModel) {
     val state by vm.state.collectAsStateWithLifecycle()
     val nav = rememberNavController()
+
+    // Ao abrir ou voltar ao app: dados do relógio (Samsung Health etc.) via Health Connect.
+    // A leitura só é permitida com o app em primeiro plano.
+    LifecycleStartEffect(vm) {
+        vm.refreshHealthData()
+        onStopOrDispose { }
+    }
 
     // Sessão ativa e não concluída assume a tela inteira (equiv. ao showExecution do web).
     val active = state.activeSession

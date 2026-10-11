@@ -341,7 +341,7 @@ private fun AccountDialog(vm: GymTrackViewModel, onClose: () -> Unit) {
             Spacer(Modifier.height(16.dp))
             Text("Health Connect", color = TC.Slate500, fontSize = 12.sp)
             Spacer(Modifier.height(6.dp))
-            HealthConnectSection()
+            HealthConnectSection(onImportEnabled = { vm.refreshHealthData(backfill = true) })
 
             Spacer(Modifier.height(16.dp))
             Text("Backup", color = TC.Slate500, fontSize = 12.sp)

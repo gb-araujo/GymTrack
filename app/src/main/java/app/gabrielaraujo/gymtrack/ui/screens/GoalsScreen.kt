@@ -37,11 +37,14 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.gabrielaraujo.gymtrack.data.Goal
+import app.gabrielaraujo.gymtrack.domain.bodyWeightProgress
+import app.gabrielaraujo.gymtrack.domain.weightAt
 import app.gabrielaraujo.gymtrack.ui.GymTrackViewModel
 import app.gabrielaraujo.gymtrack.ui.components.BtnVariant
 import app.gabrielaraujo.gymtrack.ui.components.NumberStepper
 import app.gabrielaraujo.gymtrack.ui.components.ProgressBar
 import app.gabrielaraujo.gymtrack.ui.components.GymTrackButton
+import app.gabrielaraujo.gymtrack.ui.formatWeight
 import app.gabrielaraujo.gymtrack.data.newId
 import app.gabrielaraujo.gymtrack.ui.theme.TC
 import kotlin.math.min
@@ -61,6 +64,8 @@ private val goalTypes = listOf(
 fun GoalsScreen(vm: GymTrackViewModel) {
     val state by vm.state.collectAsStateWithLifecycle()
     var showNew by remember { mutableStateOf(false) }
+    // Peso corporal vem do Health Connect (balança, relógio ou Samsung Health), quando a importação está ligada.
+    val latestWeight = state.bodyWeights.lastOrNull()?.kg
 
     fun currentValue(goal: Goal): Double = when (goal.type) {
         "workout_count" -> state.totalWorkouts.toDouble()
@@ -69,7 +74,18 @@ fun GoalsScreen(vm: GymTrackViewModel) {
             state.sessions.count { it.startTime >= weekStart }.toDouble()
         }
         "volume" -> state.sessions.sumOf { it.totalVolume ?: 0.0 }
+        "body_weight" -> latestWeight ?: goal.current
         else -> goal.current
+    }
+
+    /** Progresso em %; o de peso corporal parte da pesagem de quando a meta foi criada (serve para perder ou ganhar). */
+    fun progressPct(goal: Goal, current: Double): Int = when {
+        goal.type == "body_weight" && latestWeight != null -> {
+            val start = weightAt(state.bodyWeights, goal.createdAt) ?: latestWeight
+            (bodyWeightProgress(start, latestWeight, goal.target) * 100).roundToInt()
+        }
+        goal.target <= 0 -> 0
+        else -> min(100, ((current / goal.target) * 100).roundToInt())
     }
 
     LazyColumn(
@@ -98,7 +114,7 @@ fun GoalsScreen(vm: GymTrackViewModel) {
         } else {
             items(state.goals, key = { it.id }) { goal ->
                 val current = currentValue(goal)
-                val pct = if (goal.target <= 0) 0 else min(100, ((current / goal.target) * 100).roundToInt())
+                val pct = progressPct(goal, current)
                 val done = pct >= 100
                 Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(TC.Slate900).padding(16.dp)) {
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
@@ -111,7 +127,10 @@ fun GoalsScreen(vm: GymTrackViewModel) {
                         }
                         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             Column(horizontalAlignment = Alignment.End) {
-                                Text(current.roundToInt().toString(), color = TC.White, fontSize = 18.sp, fontWeight = FontWeight.Black)
+                                Text(
+                                    if (goal.type == "body_weight") formatWeight((current * 10).roundToInt() / 10.0) else current.roundToInt().toString(),
+                                    color = TC.White, fontSize = 18.sp, fontWeight = FontWeight.Black,
+                                )
                                 Text("/ ${goal.target.roundToInt()} ${goal.unit}", color = TC.Slate500, fontSize = 12.sp)
                             }
                             Icon(Icons.Default.Delete, "Excluir", tint = TC.Slate600, modifier = Modifier.size(18.dp).clickable { vm.deleteGoal(goal.id) })
@@ -120,6 +139,9 @@ fun GoalsScreen(vm: GymTrackViewModel) {
                     Spacer(Modifier.height(10.dp))
                     ProgressBar(fraction = pct / 100f, color = if (done) TC.Yellow500 else TC.Indigo500)
                     Text("$pct%${if (done) " — Concluída! 🎉" else ""}", color = if (done) TC.Yellow400 else TC.Slate500, fontSize = 12.sp, modifier = Modifier.fillMaxWidth().padding(top = 4.dp), textAlign = androidx.compose.ui.text.style.TextAlign.End)
+                    if (goal.type == "body_weight" && latestWeight == null) {
+                        Text("Ligue \"Importar do relógio\" na tela de conta para acompanhar seu peso pelo Health Connect.", color = TC.Slate600, fontSize = 11.sp)
+                    }
                 }
             }
         }

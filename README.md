@@ -3,6 +3,22 @@
 App Android nativo de acompanhamento de treinos de musculação, escrito em **Kotlin + Jetpack Compose**.
 Offline-first: tudo fica no aparelho (Room) e, com login Google, sincroniza com o Firestore.
 
+## Telas
+
+<p align="center">
+  <img src="docs/screenshots/inicio.png" width="220" alt="Início">
+  <img src="docs/screenshots/treino.png" width="220" alt="Treino em andamento com timer de descanso">
+  <img src="docs/screenshots/historico.png" width="220" alt="Histórico">
+</p>
+<p align="center">
+  <img src="docs/screenshots/detalhe-treino.png" width="220" alt="Detalhe do treino">
+  <img src="docs/screenshots/progresso-prs.png" width="220" alt="Recordes pessoais">
+  <img src="docs/screenshots/progresso-volume.png" width="220" alt="Volume por treino">
+</p>
+<p align="center">
+  <img src="docs/screenshots/metas.png" width="220" alt="Metas">
+</p>
+
 ## Stack
 
 - **Kotlin** + **Jetpack Compose** (Material 3, tema dark)

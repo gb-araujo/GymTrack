@@ -180,9 +180,13 @@ class GymTrackViewModelTest {
         )
         vm.updateCompletedSession(edited)
 
-        val state = vm.await { it.personalRecords[exerciseId]?.weight == 300.0 }
+        // Recordes e sessões chegam por Flows separados: espera os dois refletirem a edição.
+        val expectedVolume = (saved.totalVolume ?: 0.0) + (300.0 - 50.0) * first.sets.first().reps
+        val state = vm.await {
+            it.personalRecords[exerciseId]?.weight == 300.0 && it.sessions.singleOrNull()?.totalVolume == expectedVolume
+        }
         val updated = state.sessions.single()
-        assertEquals((saved.totalVolume ?: 0.0) + (300.0 - 50.0) * first.sets.first().reps, updated.totalVolume!!, 0.001)
+        assertEquals(expectedVolume, updated.totalVolume!!, 0.001)
         assertTrue(exerciseId in updated.prsAchieved)
     }
 

@@ -127,7 +127,8 @@ fun WorkoutExecutionScreen(vm: GymTrackViewModel) {
             vm.updateSetRecord(idx, setIndex) { it.copy(completed = false) }
             progressionSuggestion = null
         } else {
-            vm.updateSetRecord(idx, setIndex) { it.copy(completed = true) }
+            // O horário da série permite mostrar, no histórico, o descanso real entre as séries.
+            vm.updateSetRecord(idx, setIndex) { it.copy(completed = true, timestamp = System.currentTimeMillis()) }
             vm.startRestTimer(restDefault, current.id)
             checkProgression(current.sets.mapIndexed { i, set -> if (i == setIndex) set.copy(completed = true) else set })
         }

@@ -451,14 +451,6 @@ class GymTrackViewModel(
         scheduleSync()
     }
 
-    /** Histórico de um exercício em todas as sessões concluídas (mais recentes primeiro). */
-    fun exerciseHistory(exerciseId: String): List<Triple<Long, List<SetRecord>, String>> =
-        state.value.sessions
-            .mapNotNull { session ->
-                session.exercises.find { it.exerciseId == exerciseId }?.let { ex -> Triple(session.startTime, ex.sets, session.id) }
-            }
-            .sortedByDescending { it.first }
-
     // ---------------- Exercícios ----------------
 
     fun saveCustomExercise(exercise: Exercise) = write { repo.saveCustomExercise(exercise, uid) }

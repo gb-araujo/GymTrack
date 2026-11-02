@@ -18,6 +18,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
@@ -27,9 +28,9 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -40,6 +41,13 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.gabrielaraujo.gymtrack.data.SessionExercise
 import app.gabrielaraujo.gymtrack.data.SetRecord
 import app.gabrielaraujo.gymtrack.data.WorkoutSession
+import app.gabrielaraujo.gymtrack.domain.DataIssue
+import app.gabrielaraujo.gymtrack.domain.auditSessions
+import app.gabrielaraujo.gymtrack.domain.averageRestSeconds
+import app.gabrielaraujo.gymtrack.domain.bestOf
+import app.gabrielaraujo.gymtrack.domain.exerciseDisplayName
+import app.gabrielaraujo.gymtrack.domain.isValidForReports
+import app.gabrielaraujo.gymtrack.domain.sessionTotals
 import app.gabrielaraujo.gymtrack.ui.GymTrackViewModel
 import app.gabrielaraujo.gymtrack.ui.components.BtnVariant
 import app.gabrielaraujo.gymtrack.ui.components.GymTrackButton
@@ -47,14 +55,13 @@ import app.gabrielaraujo.gymtrack.ui.components.NumberStepper
 import app.gabrielaraujo.gymtrack.ui.withAddedSet
 import app.gabrielaraujo.gymtrack.ui.formatDuration
 import app.gabrielaraujo.gymtrack.ui.formatFullDate
+import app.gabrielaraujo.gymtrack.ui.formatSet
 import app.gabrielaraujo.gymtrack.ui.formatVolume
-import app.gabrielaraujo.gymtrack.ui.formatWeight
 import app.gabrielaraujo.gymtrack.ui.watchStats
 import app.gabrielaraujo.gymtrack.ui.theme.TC
-import kotlin.math.roundToInt
 
 @Composable
-fun HistoryDetailScreen(vm: GymTrackViewModel, sessionId: String, onBack: () -> Unit) {
+fun HistoryDetailScreen(vm: GymTrackViewModel, sessionId: String, onBack: () -> Unit, onOpenExercise: (String) -> Unit) {
     val state by vm.state.collectAsStateWithLifecycle()
     val session = state.sessions.find { it.id == sessionId }
     var draft by remember(sessionId) { mutableStateOf<WorkoutSession?>(null) }
@@ -90,13 +97,16 @@ fun HistoryDetailScreen(vm: GymTrackViewModel, sessionId: String, onBack: () -> 
             return@Column
         }
 
+        val totals = sessionTotals(session.exercises)
+        val issues = remember(state.sessions, state.exercises) { auditSessions(state.sessions, state.exercises.associateBy { it.id }) }[session.id].orEmpty()
+
         LazyColumn(Modifier.fillMaxWidth().padding(horizontal = 16.dp), contentPadding = androidx.compose.foundation.layout.PaddingValues(vertical = 16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             item {
+                // Totais recalculados a partir das séries gravadas na sessão.
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     MiniStat("Duração", formatDuration(session.duration), Modifier.weight(1f))
                     MiniStat("Exercícios", session.exercises.size.toString(), Modifier.weight(1f))
-                    MiniStat("Séries", (session.totalSets ?: 0).toString(), Modifier.weight(1f))
-                    MiniStat("Volume", formatVolume(session.totalVolume), Modifier.weight(1f))
+                    MiniStat("Séries", totals.sets.toString(), Modifier.weight(1f))
                 }
             }
 
@@ -109,17 +119,26 @@ fun HistoryDetailScreen(vm: GymTrackViewModel, sessionId: String, onBack: () -> 
                 }
             }
 
+            issueMessages(issues, session.duration).forEach { message -> item { Note(message) } }
+
             if (session.prsAchieved.isNotEmpty()) {
                 item {
                     Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(TC.Yellow500.copy(alpha = 0.12f)).padding(16.dp)) {
                         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             Icon(Icons.Default.EmojiEvents, null, tint = TC.Yellow400, modifier = Modifier.size(16.dp))
-                            Text("Recordes Pessoais", color = TC.Yellow400, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                            Text("Recordes pessoais neste treino", color = TC.Yellow400, fontWeight = FontWeight.Bold, fontSize = 14.sp)
                         }
                         Spacer(Modifier.height(4.dp))
                         session.prsAchieved.forEach { id ->
-                            val pr = state.personalRecords[id]
-                            Text("🏆 ${pr?.exerciseName ?: id}${if (pr != null) " · ${formatWeight(pr.weight)}kg × ${pr.reps}" else ""}", color = TC.Yellow400.copy(alpha = 0.9f), fontSize = 14.sp)
+                            // O valor feito neste treino, e não o recorde atual (que pode ter sido batido depois).
+                            val done = session.exercises.filter { it.exerciseId == id }
+                            val best = bestOf(done.flatMap { it.sets }.filter { it.isValidForReports() })
+                            val name = exerciseDisplayName(id, state.exercises.find { it.id == id }, done.firstOrNull()?.name)
+                            Text(
+                                "🏆 $name" + (best?.let { " · " + formatSet(it.weight, it.reps) } ?: ""),
+                                color = TC.Yellow400.copy(alpha = 0.9f), fontSize = 14.sp,
+                                modifier = Modifier.clickable { onOpenExercise(id) }.padding(vertical = 2.dp),
+                            )
                         }
                     }
                 }
@@ -128,18 +147,27 @@ fun HistoryDetailScreen(vm: GymTrackViewModel, sessionId: String, onBack: () -> 
             for (ex in session.exercises) {
                 item {
                     val completedSets = ex.sets.filter { it.completed }
+                    val skipped = ex.sets.size - completedSets.size
                     val volume = completedSets.sumOf { it.weight * it.reps }
+                    val rest = averageRestSeconds(ex.sets)
                     Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(TC.Slate900).padding(16.dp)) {
-                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                            Column {
+                        Row(
+                            Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)).clickable { onOpenExercise(ex.exerciseId) },
+                            horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Column(Modifier.weight(1f)) {
                                 Text(ex.name, color = TC.White, fontWeight = FontWeight.Bold)
-                                if (ex.substitutedFrom != null) Text("Substituiu outro exercício", color = TC.Slate500, fontSize = 12.sp)
+                                ex.substitutedFrom?.let { originalId ->
+                                    val original = exerciseDisplayName(originalId, state.exercises.find { it.id == originalId }, null)
+                                    Text("No lugar de $original", color = TC.Slate500, fontSize = 12.sp)
+                                }
                             }
-                            if (volume > 0) Text("${volume.roundToInt()} kg vol.", color = TC.Slate500, fontSize = 12.sp)
+                            Text("Evolução", color = TC.Indigo400, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                            Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null, tint = TC.Indigo400, modifier = Modifier.size(16.dp))
                         }
                         Spacer(Modifier.height(8.dp))
                         if (completedSets.isEmpty()) {
-                            Text("Nenhuma série registrada", color = TC.Slate600, fontSize = 12.sp)
+                            Text("Nenhuma série concluída", color = TC.Slate600, fontSize = 12.sp)
                         } else {
                             completedSets.forEachIndexed { i, set ->
                                 Row(Modifier.fillMaxWidth().padding(vertical = 3.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -148,15 +176,28 @@ fun HistoryDetailScreen(vm: GymTrackViewModel, sessionId: String, onBack: () -> 
                                     }
                                     Text("Série ${i + 1}", color = TC.Slate300, fontSize = 14.sp)
                                     Text(
-                                        (if (set.weight > 0) "${formatWeight(set.weight)} kg" else "Peso corp.") + " × ${set.reps}",
+                                        formatSet(set.weight, set.reps),
                                         color = TC.White, fontSize = 14.sp, fontWeight = FontWeight.Bold,
                                         modifier = Modifier.weight(1f), textAlign = androidx.compose.ui.text.style.TextAlign.End,
                                     )
                                 }
                             }
                         }
+                        val footer = listOfNotNull(
+                            skipped.takeIf { it > 0 }?.let { "$it série(s) não concluída(s)" },
+                            rest?.let { "descanso médio ${formatRest(it)}" },
+                            volume.takeIf { it > 0 }?.let { "volume ${formatVolume(it)}" },
+                        )
+                        if (footer.isNotEmpty()) {
+                            Spacer(Modifier.height(6.dp))
+                            Text(footer.joinToString(" · "), color = TC.Slate500, fontSize = 12.sp)
+                        }
                     }
                 }
+            }
+
+            if (totals.volume > 0) {
+                item { Text("Volume total do treino: ${formatVolume(totals.volume)} (carga × repetições das séries concluídas)", color = TC.Slate600, fontSize = 12.sp) }
             }
         }
     }
@@ -174,6 +215,18 @@ fun HistoryDetailScreen(vm: GymTrackViewModel, sessionId: String, onBack: () -> 
         }
     }
 }
+
+/** Avisos de qualidade dos dados (só informam; nada é corrigido automaticamente). */
+private fun issueMessages(issues: Set<DataIssue>, duration: Int?): List<String> = issues.mapNotNull { issue ->
+    when (issue) {
+        DataIssue.LONG_DURATION -> "Duração de ${formatDuration(duration)}: o treino provavelmente ficou aberto depois de terminar."
+        DataIssue.POSSIBLE_DUPLICATE -> "Há outro treino deste dia começando quase no mesmo horário. Pode ser um registro duplicado."
+        DataIssue.ZERO_LOAD -> "Há séries com carga 0 em exercício que usa carga. Elas entram no recorde e no volume como 0 kg."
+        DataIssue.ZERO_REPS, DataIssue.STORED_TOTALS_MISMATCH -> null
+    }
+}
+
+private fun formatRest(seconds: Long): String = "%d:%02d".format(seconds / 60, seconds % 60)
 
 @Composable
 private fun MiniStat(label: String, value: String, modifier: Modifier = Modifier) {

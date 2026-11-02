@@ -34,6 +34,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import app.gabrielaraujo.gymtrack.ui.screens.ExerciseProgressScreen
 import app.gabrielaraujo.gymtrack.ui.screens.GoalsScreen
 import app.gabrielaraujo.gymtrack.ui.screens.HistoryDetailScreen
 import app.gabrielaraujo.gymtrack.ui.screens.HistoryScreen
@@ -103,13 +104,22 @@ fun GymTrackApp(vm: GymTrackViewModel) {
             composable("history") {
                 HistoryScreen(vm, onOpenSession = { id -> nav.navigate("history_detail/$id") })
             }
-            composable("progress") { ProgressScreen(vm) }
+            composable("progress") { ProgressScreen(vm, onOpenExercise = { id -> nav.navigate("exercise/$id") }) }
             composable("goals") { GoalsScreen(vm) }
             composable("history_detail/{sessionId}") { entry ->
                 HistoryDetailScreen(
                     vm,
                     sessionId = entry.arguments?.getString("sessionId").orEmpty(),
                     onBack = { nav.popBackStack() },
+                    onOpenExercise = { id -> nav.navigate("exercise/$id") },
+                )
+            }
+            composable("exercise/{exerciseId}") { entry ->
+                ExerciseProgressScreen(
+                    vm,
+                    exerciseId = entry.arguments?.getString("exerciseId").orEmpty(),
+                    onBack = { nav.popBackStack() },
+                    onOpenSession = { id -> nav.navigate("history_detail/$id") },
                 )
             }
             composable("plan_editor/{planId}") { entry ->

@@ -124,7 +124,7 @@ fun WorkoutExecutionScreen(vm: WorkoutViewModel) {
             vm.updateSet(idx, setIndex) { it.copy(completed = false) }
             progressionSuggestion = null
         } else {
-            vm.updateSet(idx, setIndex) { it.copy(completed = true) }
+            vm.updateSet(idx, setIndex) { it.copy(completed = true, timestamp = System.currentTimeMillis()) }
             vm.startRest(restDefault, current.id)
             checkProgression(current.sets.mapIndexed { i, set -> if (i == setIndex) set.copy(completed = true) else set })
         }

@@ -5,9 +5,11 @@ import androidx.lifecycle.viewModelScope
 import app.gabrielaraujo.gymtrack.data.Exercise
 import app.gabrielaraujo.gymtrack.data.PersonalRecord
 import app.gabrielaraujo.gymtrack.data.WorkoutSession
+import app.gabrielaraujo.gymtrack.data.WorkoutPlan
 import app.gabrielaraujo.gymtrack.data.repository.ExerciseRepository
 import app.gabrielaraujo.gymtrack.data.repository.PersonalRecordRepository
 import app.gabrielaraujo.gymtrack.data.repository.WorkoutSessionRepository
+import app.gabrielaraujo.gymtrack.data.repository.WorkoutPlanRepository
 import app.gabrielaraujo.gymtrack.domain.progression.bestRecordsByExercise
 import app.gabrielaraujo.gymtrack.health.WorkoutExporter
 import kotlinx.coroutines.CoroutineScope
@@ -19,6 +21,7 @@ import kotlinx.coroutines.launch
 
 data class HistoryUiState(
     val loaded: Boolean = false,
+    val plans: List<WorkoutPlan> = emptyList(),
     /** Treinos concluídos, do mais recente para o mais antigo. */
     val sessions: List<WorkoutSession> = emptyList(),
     /** Recorde atual por exerciseId. */
@@ -30,6 +33,7 @@ data class HistoryUiState(
 /** Histórico e detalhe de treino: edição e exclusão (que recalculam totais e recordes). */
 class HistoryViewModel(
     private val sessions: WorkoutSessionRepository,
+    plans: WorkoutPlanRepository,
     records: PersonalRecordRepository,
     exercises: ExerciseRepository,
     private val exporter: WorkoutExporter,
@@ -37,9 +41,10 @@ class HistoryViewModel(
     private val appScope: CoroutineScope,
 ) : ViewModel() {
     val state: StateFlow<HistoryUiState> =
-        combine(sessions.completedSessions, records.personalRecords, exercises.exercises) { done, recordList, library ->
+        combine(sessions.completedSessions, records.personalRecords, exercises.exercises, plans.plans) { done, recordList, library, planList ->
             HistoryUiState(
                 loaded = true,
+                plans = planList,
                 sessions = done,
                 records = bestRecordsByExercise(recordList),
                 exercisesById = library.associateBy { it.id },

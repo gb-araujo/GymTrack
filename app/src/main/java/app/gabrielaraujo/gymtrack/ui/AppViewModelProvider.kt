@@ -57,7 +57,7 @@ object AppViewModelProvider {
         }
         initializer {
             val c = container()
-            HistoryViewModel(c.repositories.sessions, c.repositories.records, c.repositories.exercises, c.healthConnect, c.appScope)
+            HistoryViewModel(c.repositories.sessions, c.repositories.plans, c.repositories.records, c.repositories.exercises, c.healthConnect, c.appScope)
         }
         initializer {
             val c = container()

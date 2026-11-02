@@ -176,7 +176,7 @@ fun ExerciseSubstituteDialog(
 }
 
 @Composable
-fun SearchField(value: String, onValueChange: (String) -> Unit, modifier: Modifier = Modifier) {
+fun SearchField(value: String, onValueChange: (String) -> Unit, modifier: Modifier = Modifier, placeholder: String = "Buscar exercício...") {
     Row(
         modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).background(TC.Slate800).padding(horizontal = 12.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -184,9 +184,9 @@ fun SearchField(value: String, onValueChange: (String) -> Unit, modifier: Modifi
     ) {
         Icon(Icons.Default.Search, null, tint = TC.Slate500, modifier = Modifier.size(16.dp))
         Box(Modifier.weight(1f)) {
-            if (value.isEmpty()) Text("Buscar exercício...", color = TC.Slate500, fontSize = 14.sp)
+            if (value.isEmpty()) Text(placeholder, color = TC.Slate500, fontSize = 14.sp)
             BasicTextField(
-                value = value, onValueChange = onValueChange,
+                value = value, onValueChange = onValueChange, singleLine = true,
                 textStyle = TextStyle(color = TC.White, fontSize = 14.sp),
                 cursorBrush = androidx.compose.ui.graphics.SolidColor(TC.Indigo400),
                 modifier = Modifier.fillMaxWidth(),

@@ -22,6 +22,9 @@ data object GoalsRoute
 @Serializable
 data class HistoryDetailRoute(val sessionId: String)
 
+@Serializable
+data class ExerciseProgressRoute(val exerciseId: String)
+
 /** @param planId ficha a editar; null cria uma nova. */
 @Serializable
 data class PlanEditorRoute(val planId: String? = null)

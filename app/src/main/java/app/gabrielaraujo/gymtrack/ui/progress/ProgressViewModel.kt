@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import app.gabrielaraujo.gymtrack.data.Exercise
 import app.gabrielaraujo.gymtrack.data.PersonalRecord
+import app.gabrielaraujo.gymtrack.data.WorkoutSession
 import app.gabrielaraujo.gymtrack.data.repository.ExerciseRepository
 import app.gabrielaraujo.gymtrack.data.repository.PersonalRecordRepository
 import app.gabrielaraujo.gymtrack.data.repository.WorkoutSessionRepository
@@ -19,6 +20,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 
 data class ProgressUiState(
+    val sessions: List<WorkoutSession> = emptyList(),
     /** Recordes, do mais recente para o mais antigo. */
     val records: List<PersonalRecord> = emptyList(),
     val totalWorkouts: Int = 0,
@@ -47,6 +49,7 @@ class ProgressViewModel(
             val best = bestRecordsByExercise(recordList).values.sortedByDescending { it.date }
             val times = done.map { it.startTime }
             ProgressUiState(
+                sessions = done,
                 records = best,
                 totalWorkouts = done.size,
                 workoutsThisMonth = workoutsInMonth(times),

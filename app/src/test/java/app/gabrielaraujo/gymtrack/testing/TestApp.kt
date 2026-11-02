@@ -60,7 +60,7 @@ class TestApp(
 
     fun workoutVm() = WorkoutViewModel(workout, repos.plans, repos.exercises, repos.sessions, healthImporter.importEnabled, scope)
 
-    fun historyVm() = HistoryViewModel(repos.sessions, repos.records, repos.exercises, exporter, scope)
+    fun historyVm() = HistoryViewModel(repos.sessions, repos.plans, repos.records, repos.exercises, exporter, scope)
 
     fun plansVm() = PlansViewModel(repos.plans, repos.exercises, scope, clock)
 

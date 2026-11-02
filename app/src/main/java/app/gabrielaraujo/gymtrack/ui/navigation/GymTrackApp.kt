@@ -46,6 +46,7 @@ import app.gabrielaraujo.gymtrack.ui.home.HomeScreen
 import app.gabrielaraujo.gymtrack.ui.plans.PlanEditorScreen
 import app.gabrielaraujo.gymtrack.ui.plans.WorkoutPlansScreen
 import app.gabrielaraujo.gymtrack.ui.progress.ProgressScreen
+import app.gabrielaraujo.gymtrack.ui.progress.ExerciseProgressScreen
 import app.gabrielaraujo.gymtrack.ui.theme.TC
 import app.gabrielaraujo.gymtrack.ui.workout.SessionSummaryScreen
 import app.gabrielaraujo.gymtrack.ui.workout.WorkoutExecutionScreen
@@ -108,13 +109,24 @@ fun GymTrackApp() {
             composable<HistoryRoute> {
                 HistoryScreen(viewModel(factory = AppViewModelProvider.Factory), onOpenSession = { id -> nav.navigate(HistoryDetailRoute(id)) })
             }
-            composable<ProgressRoute> { ProgressScreen(viewModel(factory = AppViewModelProvider.Factory)) }
+            composable<ProgressRoute> {
+                ProgressScreen(viewModel(factory = AppViewModelProvider.Factory), onOpenExercise = { id -> nav.navigate(ExerciseProgressRoute(id)) })
+            }
+            composable<ExerciseProgressRoute> { entry ->
+                ExerciseProgressScreen(
+                    viewModel(factory = AppViewModelProvider.Factory),
+                    exerciseId = entry.toRoute<ExerciseProgressRoute>().exerciseId,
+                    onBack = { nav.popBackStack() },
+                    onOpenSession = { id -> nav.navigate(HistoryDetailRoute(id)) },
+                )
+            }
             composable<GoalsRoute> { GoalsScreen(viewModel(factory = AppViewModelProvider.Factory)) }
             composable<HistoryDetailRoute> { entry ->
                 HistoryDetailScreen(
                     viewModel(factory = AppViewModelProvider.Factory),
                     sessionId = entry.toRoute<HistoryDetailRoute>().sessionId,
                     onBack = { nav.popBackStack() },
+                    onOpenExercise = { id -> nav.navigate(ExerciseProgressRoute(id)) },
                 )
             }
             composable<PlanEditorRoute> {

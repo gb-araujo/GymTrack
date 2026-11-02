@@ -62,11 +62,33 @@ fun formatDuration(minutes: Int?): String {
     return if (h > 0) "${h}h ${m}min" else "$m min"
 }
 
-/** Volume em kg → "1.2t" / "850kg". */
+/**
+ * Volume em kg, sempre na mesma unidade para os valores serem comparáveis: "850 kg", "9 870 kg".
+ * O separador de milhar é um espaço (o ponto já é o separador decimal das cargas, ex.: "62.5").
+ */
 fun formatVolume(volume: Double?): String {
     val v = volume ?: 0.0
     if (v <= 0) return "—"
-    return if (v >= 1000) "${(v / 1000 * 10).roundToInt() / 10.0}t" else "${v.roundToInt()}kg"
+    return "${groupThousands(v.roundToInt())} kg"
+}
+
+private fun groupThousands(n: Int): String = n.toString().reversed().chunked(3).joinToString(" ").reversed()
+
+/** Carga para exibição: "62.5 kg"; 0 vira "Peso corp.". */
+fun formatLoad(weight: Double): String = if (weight > 0) "${formatWeight(weight)} kg" else "Peso corp."
+
+/** Série: "62.5 kg × 8" / "Peso corp. × 12". */
+fun formatSet(weight: Double, reps: Int): String = "${formatLoad(weight)} × $reps"
+
+/** Valor com uma casa decimal no máximo (1RM estimado, médias): 81.666 → "81.7". */
+fun formatDecimal(value: Double): String = formatWeight((value * 10).roundToInt() / 10.0)
+
+/** Diferença com sinal: "+2.5 kg", "−1 rep", "=" quando não mudou. */
+fun formatDelta(delta: Double, unit: String): String {
+    val rounded = (delta * 10).roundToInt() / 10.0
+    if (rounded == 0.0) return "="
+    val sign = if (rounded > 0) "+" else "−"
+    return "$sign${formatWeight(abs(rounded))}${if (unit.isEmpty()) "" else " $unit"}"
 }
 
 /** Remove ".0" de pesos inteiros para exibição (60.0 → "60", 62.5 → "62.5"). */

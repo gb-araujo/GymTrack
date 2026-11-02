@@ -40,7 +40,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.gabrielaraujo.gymtrack.data.SessionExercise
 import app.gabrielaraujo.gymtrack.data.SetRecord
 import app.gabrielaraujo.gymtrack.data.WorkoutSession
-import app.gabrielaraujo.gymtrack.domain.sessionTotals
+import app.gabrielaraujo.gymtrack.domain.progression.sessionTotals
 import app.gabrielaraujo.gymtrack.session.withAddedSet
 import app.gabrielaraujo.gymtrack.ui.components.BtnVariant
 import app.gabrielaraujo.gymtrack.ui.components.GymTrackButton

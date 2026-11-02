@@ -5,11 +5,11 @@ import androidx.lifecycle.viewModelScope
 import app.gabrielaraujo.gymtrack.data.PersonalRecord
 import app.gabrielaraujo.gymtrack.data.repository.PersonalRecordRepository
 import app.gabrielaraujo.gymtrack.data.repository.WorkoutSessionRepository
-import app.gabrielaraujo.gymtrack.domain.BodyWeightEntry
-import app.gabrielaraujo.gymtrack.domain.bestRecordsByExercise
-import app.gabrielaraujo.gymtrack.domain.loadHistory
-import app.gabrielaraujo.gymtrack.domain.weeklyCounts
-import app.gabrielaraujo.gymtrack.domain.workoutsInMonth
+import app.gabrielaraujo.gymtrack.domain.health.BodyWeightEntry
+import app.gabrielaraujo.gymtrack.domain.progression.bestRecordsByExercise
+import app.gabrielaraujo.gymtrack.domain.statistics.loadHistory
+import app.gabrielaraujo.gymtrack.domain.statistics.weeklyCounts
+import app.gabrielaraujo.gymtrack.domain.statistics.workoutsInMonth
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow

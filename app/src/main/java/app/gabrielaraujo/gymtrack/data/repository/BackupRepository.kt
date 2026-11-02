@@ -2,8 +2,8 @@ package app.gabrielaraujo.gymtrack.data.repository
 
 import androidx.room.withTransaction
 import app.gabrielaraujo.gymtrack.data.GymTrackDatabase
-import app.gabrielaraujo.gymtrack.domain.BackupCodec
-import app.gabrielaraujo.gymtrack.domain.BackupTables
+import app.gabrielaraujo.gymtrack.domain.backup.BackupCodec
+import app.gabrielaraujo.gymtrack.domain.backup.BackupTables
 
 /** Backup completo em JSON (fichas, histórico, recordes, metas e exercícios personalizados). */
 class BackupRepository(

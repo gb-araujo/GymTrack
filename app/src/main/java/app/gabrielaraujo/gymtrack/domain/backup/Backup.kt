@@ -1,4 +1,4 @@
-package app.gabrielaraujo.gymtrack.domain
+package app.gabrielaraujo.gymtrack.domain.backup
 
 import app.gabrielaraujo.gymtrack.data.Exercise
 import app.gabrielaraujo.gymtrack.data.Goal

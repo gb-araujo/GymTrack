@@ -1,4 +1,4 @@
-package app.gabrielaraujo.gymtrack.domain
+package app.gabrielaraujo.gymtrack.domain.statistics
 
 import app.gabrielaraujo.gymtrack.data.WorkoutSession
 import java.time.Instant

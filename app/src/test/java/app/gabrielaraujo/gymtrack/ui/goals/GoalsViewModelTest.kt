@@ -1,8 +1,8 @@
 package app.gabrielaraujo.gymtrack.ui.goals
 
 import android.app.Application
-import app.gabrielaraujo.gymtrack.domain.BodyWeightEntry
-import app.gabrielaraujo.gymtrack.domain.GoalTypes
+import app.gabrielaraujo.gymtrack.domain.health.BodyWeightEntry
+import app.gabrielaraujo.gymtrack.domain.goals.GoalTypes
 import app.gabrielaraujo.gymtrack.ui.ViewModelTestBase
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals

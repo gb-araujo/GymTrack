@@ -9,10 +9,10 @@ import app.gabrielaraujo.gymtrack.data.repository.ExerciseRepository
 import app.gabrielaraujo.gymtrack.data.repository.GoalRepository
 import app.gabrielaraujo.gymtrack.data.repository.PersonalRecordRepository
 import app.gabrielaraujo.gymtrack.data.repository.WorkoutSessionRepository
-import app.gabrielaraujo.gymtrack.domain.BodyWeightEntry
-import app.gabrielaraujo.gymtrack.domain.GoalProgress
-import app.gabrielaraujo.gymtrack.domain.bestRecordsByExercise
-import app.gabrielaraujo.gymtrack.domain.goalProgress
+import app.gabrielaraujo.gymtrack.domain.health.BodyWeightEntry
+import app.gabrielaraujo.gymtrack.domain.goals.GoalProgress
+import app.gabrielaraujo.gymtrack.domain.progression.bestRecordsByExercise
+import app.gabrielaraujo.gymtrack.domain.goals.goalProgress
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted

@@ -65,6 +65,10 @@ class ActiveWorkoutManager(
                     restExerciseId = rest?.exerciseId,
                     lastSessionForDay = sessions.lastCompletedSessionForDay(incomplete.workoutDayId),
                 )
+                // O serviço do aviso morreu junto com o processo: agenda de novo o fim do descanso.
+                if (rest != null) {
+                    restAlerts.schedule(rest.endsAt, incomplete.exercises.find { it.id == rest.exerciseId }?.name.orEmpty())
+                }
             }
         } finally {
             _restored.value = true

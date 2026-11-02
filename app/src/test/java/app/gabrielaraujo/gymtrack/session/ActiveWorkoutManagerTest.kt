@@ -96,6 +96,26 @@ class ActiveWorkoutManagerTest {
     }
 
     @Test
+    fun `retomar o treino agenda de novo o aviso de fim do descanso`() {
+        val (manager, scope) = newManager()
+        val started = startWorkout(manager)
+        manager.startRest(90, started.session.exercises.first().id)
+        scope.idle()
+
+        val alerts = mutableListOf<Long>()
+        val reopenedScope = CoroutineScope(SupervisorJob() + Dispatchers.Default).also { scopes += it }
+        val reopened = ActiveWorkoutManager(
+            repos.sessions, reopenedScope, restStore = restStore, clock = clock,
+            restAlerts = object : RestTimerAlerts {
+                override fun schedule(endsAt: Long, exerciseName: String) { alerts += endsAt }
+                override fun cancel() = Unit
+            },
+        )
+        runBlocking { reopened.restore() }
+        assertEquals(listOf(clock.now + 90_000), alerts)
+    }
+
+    @Test
     fun `descanso que ja acabou nao e retomado`() {
         val (manager, scope) = newManager()
         val started = startWorkout(manager)

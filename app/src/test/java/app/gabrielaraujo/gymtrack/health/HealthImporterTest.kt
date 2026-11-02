@@ -8,8 +8,8 @@ import app.gabrielaraujo.gymtrack.data.SetRecord
 import app.gabrielaraujo.gymtrack.data.WorkoutSession
 import app.gabrielaraujo.gymtrack.data.newId
 import app.gabrielaraujo.gymtrack.data.repository.Repositories
-import app.gabrielaraujo.gymtrack.domain.BodyWeightEntry
-import app.gabrielaraujo.gymtrack.domain.WorkoutHealthMetrics
+import app.gabrielaraujo.gymtrack.domain.health.BodyWeightEntry
+import app.gabrielaraujo.gymtrack.domain.health.WorkoutHealthMetrics
 import app.gabrielaraujo.gymtrack.testing.FakeHealthData
 import app.gabrielaraujo.gymtrack.testing.TestClock
 import app.gabrielaraujo.gymtrack.testing.inMemoryDb

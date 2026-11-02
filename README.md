@@ -150,19 +150,33 @@ Estrutura no Firestore: `users/{uid}/{plans|sessions|prs|goals|exercises}/{id}`,
 
 ```
 app/src/main/java/app/gabrielaraujo/gymtrack/
-├── auth/        # login Google + Firebase Auth (AuthGateway)
-├── data/        # entidades Room, DAO (com Flows), repositório, seed, ids
-├── domain/      # regras puras e testáveis: ofensiva, recordes, backup
-├── sync/        # SyncEngine (Firestore) e status da sincronização
-├── session/     # timer de descanso (foreground service)
+├── GymTrackApplication.kt / MainActivity.kt
+├── di/          # AppContainer: injeção de dependências manual (o único lugar que cria as implementações reais)
+├── auth/        # login Google + Firebase Auth (AuthGateway) e AccountCoordinator (login/logout x dados locais)
+├── data/        # entidades Room, DAO (com Flows), banco, seed, ids
+│   └── repository/   # um repositório por responsabilidade: fichas, treinos, recordes, exercícios, metas, backup, dados da conta
+├── domain/      # regras puras (JVM), sem Android
+│   ├── workout/      # ficha ativa, próximo treino, duplicar ficha
+│   ├── progression/  # totais, recordes pessoais, progressão de carga
+│   ├── statistics/   # ofensiva, treinos no mês, por semana, evolução de carga
+│   ├── goals/        # progresso das metas
+│   ├── health/       # calorias, pesagens, notas do Health Connect
+│   └── backup/       # formato e validação do backup
+├── sync/        # SyncEngine, RemoteStore (Firestore), conflitos, agendamento (WorkManager)
+├── session/     # ActiveWorkoutManager (treino em andamento) e timer de descanso (foreground service)
 ├── health/      # Health Connect (envio de treinos, leitura do relógio) e atalhos do Samsung Health
 ├── widget/      # widget da tela inicial
 └── ui/
-    ├── theme/        # paleta, tipografia, tema
-    ├── components/   # Card, botões, stepper, gráfico, ofensiva, status de sync
-    ├── screens/      # Início, Fichas, Editor, Execução, Resumo, Histórico, Progresso, Metas
-    ├── GymTrackApp.kt        # navegação + bottom bar
-    └── GymTrackViewModel.kt  # estado de tela e orquestração
-app/src/test/    # testes JUnit (domain) e Robolectric (ViewModel + Room em memória)
+    ├── navigation/   # rotas tipadas + NavHost + bottom bar
+    ├── AppViewModelProvider.kt  # fábrica de todos os ViewModels
+    ├── home/ workout/ plans/ history/ progress/ goals/ account/  # tela + ViewModel de cada funcionalidade
+    ├── components/   # Card, botões, stepper, gráfico, ofensiva, status de sync, seletores de exercício
+    └── theme/        # paleta, tipografia, tema
+app/src/test/    # JUnit (domain) e Robolectric (repositórios, sync, sessão, ViewModels e migrações do Room)
 app/schemas/     # schema do Room por versão
 ```
+
+Estado: cada tela tem seu ViewModel, com um `StateFlow` imutável derivado dos `Flow`s do Room.
+O treino em andamento pertence ao `ActiveWorkoutManager` (escopo do app), gravado no Room a cada
+mudança: sobrevive à troca de telas e ao fim do processo. Escritas que precisam terminar mesmo se a
+tela fechar (salvar ficha, excluir treino, importar backup, logout) rodam no escopo do app.

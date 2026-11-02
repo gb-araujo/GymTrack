@@ -2,7 +2,7 @@ package app.gabrielaraujo.gymtrack.ui.workout
 
 import android.app.Application
 import app.gabrielaraujo.gymtrack.data.SAMPLE_PLAN_ID
-import app.gabrielaraujo.gymtrack.domain.WorkoutHealthMetrics
+import app.gabrielaraujo.gymtrack.domain.health.WorkoutHealthMetrics
 import app.gabrielaraujo.gymtrack.session.ActiveWorkoutManager
 import app.gabrielaraujo.gymtrack.ui.ViewModelTestBase
 import kotlinx.coroutines.runBlocking

@@ -9,8 +9,8 @@ import app.gabrielaraujo.gymtrack.data.SessionExercise
 import app.gabrielaraujo.gymtrack.data.SetRecord
 import app.gabrielaraujo.gymtrack.data.WorkoutSession
 import app.gabrielaraujo.gymtrack.data.newId
-import app.gabrielaraujo.gymtrack.domain.WorkoutHealthMetrics
-import app.gabrielaraujo.gymtrack.domain.nextDayIndex
+import app.gabrielaraujo.gymtrack.domain.health.WorkoutHealthMetrics
+import app.gabrielaraujo.gymtrack.domain.workout.nextDayIndex
 import app.gabrielaraujo.gymtrack.testing.TestClock
 import app.gabrielaraujo.gymtrack.testing.inMemoryDb
 import kotlinx.coroutines.flow.first

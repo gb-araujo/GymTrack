@@ -1,8 +1,12 @@
-package app.gabrielaraujo.gymtrack.domain
+package app.gabrielaraujo.gymtrack.domain.goals
 
 import app.gabrielaraujo.gymtrack.data.Goal
 import app.gabrielaraujo.gymtrack.data.PersonalRecord
 import app.gabrielaraujo.gymtrack.data.WorkoutSession
+import app.gabrielaraujo.gymtrack.domain.health.BodyWeightEntry
+import app.gabrielaraujo.gymtrack.domain.health.bodyWeightProgress
+import app.gabrielaraujo.gymtrack.domain.health.weightAt
+import app.gabrielaraujo.gymtrack.domain.statistics.workoutsInLastWeek
 import kotlin.math.min
 import kotlin.math.roundToInt
 

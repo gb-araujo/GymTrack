@@ -12,10 +12,10 @@ import app.gabrielaraujo.gymtrack.MainActivity
 import app.gabrielaraujo.gymtrack.R
 import app.gabrielaraujo.gymtrack.data.WorkoutPlan
 import app.gabrielaraujo.gymtrack.data.WorkoutSession
-import app.gabrielaraujo.gymtrack.domain.STREAK_WINDOW_DAYS
-import app.gabrielaraujo.gymtrack.domain.activePlanOf
-import app.gabrielaraujo.gymtrack.domain.computeStreak
-import app.gabrielaraujo.gymtrack.domain.nextDayIndex
+import app.gabrielaraujo.gymtrack.domain.statistics.STREAK_WINDOW_DAYS
+import app.gabrielaraujo.gymtrack.domain.workout.activePlanOf
+import app.gabrielaraujo.gymtrack.domain.statistics.computeStreak
+import app.gabrielaraujo.gymtrack.domain.workout.nextDayIndex
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob

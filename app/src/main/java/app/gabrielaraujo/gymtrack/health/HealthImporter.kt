@@ -2,7 +2,7 @@ package app.gabrielaraujo.gymtrack.health
 
 import app.gabrielaraujo.gymtrack.data.WorkoutSession
 import app.gabrielaraujo.gymtrack.data.repository.WorkoutSessionRepository
-import app.gabrielaraujo.gymtrack.domain.BodyWeightEntry
+import app.gabrielaraujo.gymtrack.domain.health.BodyWeightEntry
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow

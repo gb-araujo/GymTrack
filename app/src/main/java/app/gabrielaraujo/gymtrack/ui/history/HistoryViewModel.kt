@@ -6,7 +6,7 @@ import app.gabrielaraujo.gymtrack.data.PersonalRecord
 import app.gabrielaraujo.gymtrack.data.WorkoutSession
 import app.gabrielaraujo.gymtrack.data.repository.PersonalRecordRepository
 import app.gabrielaraujo.gymtrack.data.repository.WorkoutSessionRepository
-import app.gabrielaraujo.gymtrack.domain.bestRecordsByExercise
+import app.gabrielaraujo.gymtrack.domain.progression.bestRecordsByExercise
 import app.gabrielaraujo.gymtrack.health.WorkoutExporter
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.SharingStarted

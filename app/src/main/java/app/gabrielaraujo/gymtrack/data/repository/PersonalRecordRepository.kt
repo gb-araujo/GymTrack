@@ -3,8 +3,8 @@ package app.gabrielaraujo.gymtrack.data.repository
 import androidx.room.withTransaction
 import app.gabrielaraujo.gymtrack.data.GymTrackDatabase
 import app.gabrielaraujo.gymtrack.data.PersonalRecord
-import app.gabrielaraujo.gymtrack.domain.diffRecords
-import app.gabrielaraujo.gymtrack.domain.recomputeRecords
+import app.gabrielaraujo.gymtrack.domain.progression.diffRecords
+import app.gabrielaraujo.gymtrack.domain.progression.recomputeRecords
 import kotlinx.coroutines.flow.Flow
 
 /**

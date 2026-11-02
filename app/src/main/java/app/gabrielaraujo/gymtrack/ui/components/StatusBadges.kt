@@ -28,8 +28,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import app.gabrielaraujo.gymtrack.domain.STREAK_WINDOW_DAYS
-import app.gabrielaraujo.gymtrack.domain.StreakInfo
+import app.gabrielaraujo.gymtrack.domain.statistics.STREAK_WINDOW_DAYS
+import app.gabrielaraujo.gymtrack.domain.statistics.StreakInfo
 import app.gabrielaraujo.gymtrack.sync.SyncStatus
 import app.gabrielaraujo.gymtrack.ui.formatDate
 import app.gabrielaraujo.gymtrack.ui.theme.TC

@@ -16,11 +16,11 @@ import androidx.health.connect.client.request.AggregateRequest
 import androidx.health.connect.client.request.ReadRecordsRequest
 import androidx.health.connect.client.time.TimeRangeFilter
 import app.gabrielaraujo.gymtrack.data.WorkoutSession
-import app.gabrielaraujo.gymtrack.domain.BodyWeightEntry
-import app.gabrielaraujo.gymtrack.domain.EnergySample
-import app.gabrielaraujo.gymtrack.domain.WorkoutHealthMetrics
-import app.gabrielaraujo.gymtrack.domain.caloriesDuring
-import app.gabrielaraujo.gymtrack.domain.workoutNotes
+import app.gabrielaraujo.gymtrack.domain.health.BodyWeightEntry
+import app.gabrielaraujo.gymtrack.domain.health.EnergySample
+import app.gabrielaraujo.gymtrack.domain.health.WorkoutHealthMetrics
+import app.gabrielaraujo.gymtrack.domain.health.caloriesDuring
+import app.gabrielaraujo.gymtrack.domain.health.workoutNotes
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow

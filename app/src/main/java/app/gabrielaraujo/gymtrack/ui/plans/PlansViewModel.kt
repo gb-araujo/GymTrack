@@ -4,8 +4,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import app.gabrielaraujo.gymtrack.data.WorkoutPlan
 import app.gabrielaraujo.gymtrack.data.repository.WorkoutPlanRepository
-import app.gabrielaraujo.gymtrack.domain.activePlanOf
-import app.gabrielaraujo.gymtrack.domain.duplicatePlan
+import app.gabrielaraujo.gymtrack.domain.workout.activePlanOf
+import app.gabrielaraujo.gymtrack.domain.workout.duplicatePlan
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow

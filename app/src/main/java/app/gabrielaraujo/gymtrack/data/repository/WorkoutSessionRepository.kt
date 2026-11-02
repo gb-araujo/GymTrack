@@ -3,8 +3,8 @@ package app.gabrielaraujo.gymtrack.data.repository
 import androidx.room.withTransaction
 import app.gabrielaraujo.gymtrack.data.GymTrackDatabase
 import app.gabrielaraujo.gymtrack.data.WorkoutSession
-import app.gabrielaraujo.gymtrack.domain.WorkoutHealthMetrics
-import app.gabrielaraujo.gymtrack.domain.sessionTotals
+import app.gabrielaraujo.gymtrack.domain.health.WorkoutHealthMetrics
+import app.gabrielaraujo.gymtrack.domain.progression.sessionTotals
 import kotlinx.coroutines.flow.Flow
 
 /**

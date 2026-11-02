@@ -1,4 +1,4 @@
-package app.gabrielaraujo.gymtrack.domain
+package app.gabrielaraujo.gymtrack.domain.statistics
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse

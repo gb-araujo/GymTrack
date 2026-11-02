@@ -14,8 +14,10 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
@@ -37,7 +39,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.gabrielaraujo.gymtrack.data.Exercise
-import app.gabrielaraujo.gymtrack.domain.GoalTypes
+import app.gabrielaraujo.gymtrack.domain.goals.GoalTypes
 import app.gabrielaraujo.gymtrack.ui.components.BtnVariant
 import app.gabrielaraujo.gymtrack.ui.components.ExercisePickerDialog
 import app.gabrielaraujo.gymtrack.ui.components.GymTrackButton
@@ -147,7 +149,8 @@ private fun NewGoalDialog(exercises: List<Exercise>, onCreate: (String, String, 
     val needsExercise = type == GoalTypes.EXERCISE_WEIGHT
 
     androidx.compose.ui.window.Dialog(onDismissRequest = onClose) {
-        Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(TC.Slate900).padding(20.dp)) {
+        // Rola: com o teclado aberto (e o campo de exercício), o botão Criar pode ficar fora da tela.
+        Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(TC.Slate900).verticalScroll(rememberScrollState()).padding(20.dp)) {
             Text("Nova Meta", color = TC.White, fontSize = 18.sp, fontWeight = FontWeight.Bold)
             Spacer(Modifier.height(12.dp))
             Text("Título", color = TC.Slate500, fontSize = 12.sp)

@@ -1,4 +1,4 @@
-package app.gabrielaraujo.gymtrack.domain
+package app.gabrielaraujo.gymtrack.domain.health
 
 import app.gabrielaraujo.gymtrack.data.WorkoutSession
 import kotlin.math.abs

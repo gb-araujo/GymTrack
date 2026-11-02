@@ -55,7 +55,7 @@ import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.gabrielaraujo.gymtrack.data.SetRecord
-import app.gabrielaraujo.gymtrack.domain.suggestedNextWeight
+import app.gabrielaraujo.gymtrack.domain.progression.suggestedNextWeight
 import app.gabrielaraujo.gymtrack.ui.components.BtnVariant
 import app.gabrielaraujo.gymtrack.ui.components.ExerciseSubstituteDialog
 import app.gabrielaraujo.gymtrack.ui.components.GymTrackButton

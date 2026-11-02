@@ -35,7 +35,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import app.gabrielaraujo.gymtrack.domain.BodyWeightEntry
+import app.gabrielaraujo.gymtrack.domain.health.BodyWeightEntry
 import app.gabrielaraujo.gymtrack.ui.components.LineChart
 import app.gabrielaraujo.gymtrack.ui.formatBodyWeight
 import app.gabrielaraujo.gymtrack.ui.formatDate

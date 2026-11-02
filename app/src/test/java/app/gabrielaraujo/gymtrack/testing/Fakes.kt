@@ -8,8 +8,8 @@ import app.gabrielaraujo.gymtrack.auth.AppUser
 import app.gabrielaraujo.gymtrack.auth.AuthGateway
 import app.gabrielaraujo.gymtrack.data.GymTrackDatabase
 import app.gabrielaraujo.gymtrack.data.WorkoutSession
-import app.gabrielaraujo.gymtrack.domain.BodyWeightEntry
-import app.gabrielaraujo.gymtrack.domain.WorkoutHealthMetrics
+import app.gabrielaraujo.gymtrack.domain.health.BodyWeightEntry
+import app.gabrielaraujo.gymtrack.domain.health.WorkoutHealthMetrics
 import app.gabrielaraujo.gymtrack.health.HealthDataSource
 import app.gabrielaraujo.gymtrack.health.WorkoutExporter
 import app.gabrielaraujo.gymtrack.session.RestState

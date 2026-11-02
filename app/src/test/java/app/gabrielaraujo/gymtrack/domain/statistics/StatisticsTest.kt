@@ -1,12 +1,13 @@
-package app.gabrielaraujo.gymtrack.domain
+package app.gabrielaraujo.gymtrack.domain.statistics
 
 import app.gabrielaraujo.gymtrack.data.SessionExercise
 import app.gabrielaraujo.gymtrack.data.SetRecord
 import app.gabrielaraujo.gymtrack.data.WorkoutSession
-import org.junit.Assert.assertEquals
-import org.junit.Test
+import app.gabrielaraujo.gymtrack.domain.progression.suggestedNextWeight
 import java.time.LocalDate
 import java.time.ZoneOffset
+import org.junit.Assert.assertEquals
+import org.junit.Test
 
 class StatisticsTest {
     private val day = 86_400_000L

@@ -12,6 +12,7 @@ import app.gabrielaraujo.gymtrack.testing.FakeAuth
 import app.gabrielaraujo.gymtrack.testing.FakeExporter
 import app.gabrielaraujo.gymtrack.testing.FakeHealthData
 import app.gabrielaraujo.gymtrack.testing.FakeSync
+import app.gabrielaraujo.gymtrack.testing.FakeSyncScheduler
 import app.gabrielaraujo.gymtrack.testing.TestClock
 import app.gabrielaraujo.gymtrack.testing.inMemoryDb
 import kotlinx.coroutines.Dispatchers
@@ -69,7 +70,9 @@ class GymTrackViewModelTest {
     private fun newVm(
         exporter: FakeExporter = FakeExporter(),
         health: HealthDataSource = HealthDataSource.None,
-    ) = GymTrackViewModel(repo, FakeAuth(), FakeSync(), workoutExporter = exporter, healthData = health, clock = clock)
+        auth: FakeAuth = FakeAuth(),
+        scheduler: FakeSyncScheduler = FakeSyncScheduler(),
+    ) = GymTrackViewModel(repo, auth, FakeSync(), scheduler, workoutExporter = exporter, healthData = health, clock = clock)
         .also { vms += it }
 
     private fun GymTrackViewModel.await(predicate: (UiState) -> Boolean): UiState =
@@ -180,7 +183,8 @@ class GymTrackViewModelTest {
         )
         vm.updateCompletedSession(edited)
 
-        val state = vm.await { it.personalRecords[exerciseId]?.weight == 300.0 }
+        // Recordes e histórico chegam por fluxos separados: espera os dois refletirem a edição.
+        val state = vm.await { it.personalRecords[exerciseId]?.weight == 300.0 && it.sessions.single().totalVolume != saved.totalVolume }
         val updated = state.sessions.single()
         assertEquals((saved.totalVolume ?: 0.0) + (300.0 - 50.0) * first.sets.first().reps, updated.totalVolume!!, 0.001)
         assertTrue(exerciseId in updated.prsAchieved)
@@ -252,5 +256,66 @@ class GymTrackViewModelTest {
         assertEquals(done.id, state.sessions.single().id)
         assertEquals(80.6, state.bodyWeights.last().kg, 0.0)
         assertTrue(state.healthImportEnabled)
+    }
+
+    @Test
+    fun `edicoes agendam sincronizacao em segundo plano so com usuario logado`() {
+        val anonymous = FakeSyncScheduler()
+        newVm(scheduler = anonymous).doWorkout()
+        assertEquals(0, anonymous.requests)
+
+        val logged = FakeSyncScheduler()
+        newVm(auth = FakeAuth("u1"), scheduler = logged).doWorkout()
+        assertTrue(logged.requests > 0)
+    }
+
+    @Test
+    fun `proximo treino sugerido avanca com o historico`() {
+        val vm = newVm()
+        assertEquals(0, vm.await { it.loaded && it.activePlan != null }.nextDayIndex)
+        vm.doWorkout()
+        assertEquals(1, vm.await { it.sessions.size == 1 }.nextDayIndex)
+    }
+
+    @Test
+    fun `sair sem pendencias apaga os dados da conta deste aparelho`() {
+        val auth = FakeAuth("u1")
+        val scheduler = FakeSyncScheduler()
+        val vm = newVm(auth = auth, scheduler = scheduler)
+        vm.doWorkout()
+        // Tudo já sincronizado.
+        runBlocking { repo.dao.getSessions().forEach { repo.dao.clearSessionDirty(it.id, it.updatedAt) } }
+        runBlocking { repo.dao.getPersonalRecords().forEach { repo.dao.clearPersonalRecordDirty(it.exerciseId, it.updatedAt) } }
+
+        vm.signOut()
+        val state = vm.await { it.sessions.isEmpty() && it.personalRecords.isEmpty() }
+        assertNull(auth.user.value)
+        assertEquals(1, scheduler.cancels)
+        assertNull(vm.signOutPending.value)
+        // A ficha exemplo volta, sem dono, para o próximo uso.
+        assertEquals(listOf("sample_hipertrofia"), state.plans.map { it.id })
+    }
+
+    @Test
+    fun `sair com pendencias pede confirmacao antes de apagar`() {
+        val auth = FakeAuth("u1")
+        val vm = newVm(auth = auth)
+        vm.doWorkout()
+
+        vm.signOut()
+        val pending = eventually { vm.signOutPending.value }
+        assertTrue(pending > 0)
+        assertNotNull(auth.user.value)
+        assertEquals(1, vm.await { it.sessions.size == 1 }.sessions.size)
+
+        vm.cancelSignOut()
+        assertNull(vm.signOutPending.value)
+        assertNotNull(auth.user.value)
+
+        vm.signOut()
+        eventually { vm.signOutPending.value }
+        vm.confirmSignOut()
+        vm.await { it.sessions.isEmpty() }
+        assertNull(auth.user.value)
     }
 }

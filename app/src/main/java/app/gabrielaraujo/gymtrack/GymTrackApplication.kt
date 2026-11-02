@@ -6,7 +6,10 @@ import app.gabrielaraujo.gymtrack.data.GymTrackDatabase
 import app.gabrielaraujo.gymtrack.data.GymTrackRepository
 import app.gabrielaraujo.gymtrack.health.HealthConnectManager
 import app.gabrielaraujo.gymtrack.session.ServiceRestTimerAlerts
+import app.gabrielaraujo.gymtrack.sync.FirestoreRemoteStore
 import app.gabrielaraujo.gymtrack.sync.SyncEngine
+import app.gabrielaraujo.gymtrack.sync.SyncScheduler
+import app.gabrielaraujo.gymtrack.sync.WorkManagerSyncScheduler
 import app.gabrielaraujo.gymtrack.widget.WidgetUpdater
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -24,7 +27,10 @@ class GymTrackApplication : Application() {
     val database: GymTrackDatabase by lazy { GymTrackDatabase.build(this) }
     val repository: GymTrackRepository by lazy { GymTrackRepository(database) }
     val authManager: AuthManager by lazy { AuthManager() }
-    val syncEngine: SyncEngine by lazy { SyncEngine(repository.dao) }
+    val syncEngine: SyncEngine by lazy {
+        SyncEngine(database, FirestoreRemoteStore(), recomputeDerived = { uid -> repository.recomputeRecords(uid) })
+    }
+    val syncScheduler: SyncScheduler by lazy { WorkManagerSyncScheduler(this) }
     val restTimerAlerts: ServiceRestTimerAlerts by lazy { ServiceRestTimerAlerts(this) }
     val healthConnect: HealthConnectManager by lazy { HealthConnectManager(this) }
 

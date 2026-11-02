@@ -31,8 +31,9 @@ interface GymTrackDao {
     @Query("SELECT * FROM exercises WHERE id = :id")
     suspend fun getExercise(id: String): Exercise?
 
-    @Query("SELECT * FROM exercises WHERE dirty = 1")
-    suspend fun getDirtyExercises(): List<Exercise>
+    /** Pendências de envio do usuário [uid] (só exercícios personalizados sobem). */
+    @Query("SELECT * FROM exercises WHERE dirty = 1 AND ownerId = :uid AND isCustom = 1")
+    suspend fun getDirtyExercises(uid: String): List<Exercise>
 
     /** Só limpa o dirty se o registro não mudou desde o envio (senão a edição nova seria perdida). */
     @Query("UPDATE exercises SET dirty = 0 WHERE id = :id AND updatedAt = :updatedAt")
@@ -60,8 +61,8 @@ interface GymTrackDao {
     @Upsert
     suspend fun upsertPlans(plans: List<WorkoutPlan>)
 
-    @Query("SELECT * FROM workout_plans WHERE dirty = 1")
-    suspend fun getDirtyPlans(): List<WorkoutPlan>
+    @Query("SELECT * FROM workout_plans WHERE dirty = 1 AND ownerId = :uid")
+    suspend fun getDirtyPlans(uid: String): List<WorkoutPlan>
 
     @Query("UPDATE workout_plans SET dirty = 0 WHERE id = :id AND updatedAt = :updatedAt")
     suspend fun clearPlanDirty(id: String, updatedAt: Long)
@@ -104,8 +105,8 @@ interface GymTrackDao {
     suspend fun deleteSession(id: String)
 
     /** Sessões em andamento nunca sobem para a nuvem. */
-    @Query("SELECT * FROM workout_sessions WHERE dirty = 1 AND (completed = 1 OR deleted = 1)")
-    suspend fun getDirtySessions(): List<WorkoutSession>
+    @Query("SELECT * FROM workout_sessions WHERE dirty = 1 AND ownerId = :uid AND (completed = 1 OR deleted = 1)")
+    suspend fun getDirtySessions(uid: String): List<WorkoutSession>
 
     @Query("UPDATE workout_sessions SET dirty = 0 WHERE id = :id AND updatedAt = :updatedAt")
     suspend fun clearSessionDirty(id: String, updatedAt: Long)
@@ -129,8 +130,8 @@ interface GymTrackDao {
     @Upsert
     suspend fun upsertPersonalRecords(records: List<PersonalRecord>)
 
-    @Query("SELECT * FROM personal_records WHERE dirty = 1")
-    suspend fun getDirtyPersonalRecords(): List<PersonalRecord>
+    @Query("SELECT * FROM personal_records WHERE dirty = 1 AND ownerId = :uid")
+    suspend fun getDirtyPersonalRecords(uid: String): List<PersonalRecord>
 
     @Query("UPDATE personal_records SET dirty = 0 WHERE exerciseId = :id AND updatedAt = :updatedAt")
     suspend fun clearPersonalRecordDirty(id: String, updatedAt: Long)
@@ -154,8 +155,8 @@ interface GymTrackDao {
     @Upsert
     suspend fun upsertGoals(goals: List<Goal>)
 
-    @Query("SELECT * FROM goals WHERE dirty = 1")
-    suspend fun getDirtyGoals(): List<Goal>
+    @Query("SELECT * FROM goals WHERE dirty = 1 AND ownerId = :uid")
+    suspend fun getDirtyGoals(uid: String): List<Goal>
 
     @Query("UPDATE goals SET dirty = 0 WHERE id = :id AND updatedAt = :updatedAt")
     suspend fun clearGoalDirty(id: String, updatedAt: Long)
@@ -179,4 +180,23 @@ interface GymTrackDao {
 
     @Upsert
     suspend fun setSyncMeta(meta: SyncMeta)
+
+    // Limpeza dos dados do usuário (logout). Os exercícios nativos ficam.
+    @Query("DELETE FROM workout_plans")
+    suspend fun deleteAllPlans()
+
+    @Query("DELETE FROM workout_sessions")
+    suspend fun deleteAllSessions()
+
+    @Query("DELETE FROM personal_records")
+    suspend fun deleteAllPersonalRecords()
+
+    @Query("DELETE FROM goals")
+    suspend fun deleteAllGoals()
+
+    @Query("DELETE FROM exercises WHERE isCustom = 1")
+    suspend fun deleteCustomExercises()
+
+    @Query("DELETE FROM sync_meta")
+    suspend fun deleteSyncMeta()
 }

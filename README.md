@@ -129,12 +129,22 @@ Sem isso o app falha ao abrir em vez de apagar os treinos do usuário (e o CI ac
 Estrutura no Firestore: `users/{uid}/{plans|sessions|prs|goals|exercises}/{id}`, cada documento com
 `{ updatedAt, serverUpdatedAt, deleted, json }`.
 
-- Conflitos: last-write-wins por `updatedAt`.
-- Pull incremental pelo `serverUpdatedAt` (hora do servidor), então relógios desajustados entre
-  aparelhos não fazem mudanças se perderem.
-- Push em lotes (`WriteBatch`); o `dirty` só é limpo se o registro não mudou durante o envio.
+- A fila de envio é o próprio registro: `dirty = 1` é gravado junto com a edição, na mesma linha do Room,
+  então sobrevive ao app ser encerrado. Não há outbox separado.
+- Conflitos: last-write-wins por `updatedAt`, que só avança com edições do usuário. O que é derivado ou
+  medido fica fora do LWW: recordes e PRs são recalculados localmente após cada pull, o próximo treino
+  da ficha sai do histórico e as medidas do relógio são mescladas (`SyncConflictResolver`).
+- Envio em transações do Firestore: a versão remota é lida antes de gravar, então uma edição mais antiga
+  nunca sobrescreve uma mais nova; sem rede, falha (não fica na fila offline do SDK). Reenviar é idempotente.
+- Pull incremental pelo `serverUpdatedAt` (hora do servidor), aplicado numa transação do Room: uma edição
+  feita no meio do pull não é sobrescrita.
+- Em segundo plano via WorkManager (`SyncScheduler`): só com rede, com backoff exponencial.
 - Exclusões são tombstones (`deleted = true`) para propagar entre aparelhos.
 - Treinos em andamento nunca sobem; só os concluídos.
+- Sair da conta apaga os dados dela do aparelho (pede confirmação se algo não subiu); pendências de outra
+  conta nunca são enviadas para a conta logada.
+- A ficha exemplo semeada (`sample_hipertrofia`) nasce com `updatedAt = 0`: num aparelho novo ela não
+  sobrescreve a versão editada que já está na nuvem.
 
 ## Estrutura
 

@@ -17,22 +17,26 @@ import app.gabrielaraujo.gymtrack.data.WorkoutSession
 import app.gabrielaraujo.gymtrack.data.newId
 import app.gabrielaraujo.gymtrack.domain.BodyWeightEntry
 import app.gabrielaraujo.gymtrack.domain.StreakInfo
+import app.gabrielaraujo.gymtrack.domain.activePlanOf
 import app.gabrielaraujo.gymtrack.domain.bestRecordsByExercise
 import app.gabrielaraujo.gymtrack.domain.computeStreak
+import app.gabrielaraujo.gymtrack.domain.nextDayIndex
 import app.gabrielaraujo.gymtrack.health.HealthDataSource
 import app.gabrielaraujo.gymtrack.health.WorkoutExporter
 import app.gabrielaraujo.gymtrack.session.RestTimerAlerts
 import app.gabrielaraujo.gymtrack.sync.CloudSync
+import app.gabrielaraujo.gymtrack.sync.SyncResult
+import app.gabrielaraujo.gymtrack.sync.SyncScheduler
 import app.gabrielaraujo.gymtrack.sync.SyncStatus
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
@@ -57,6 +61,8 @@ data class UiState(
     val exercises: List<Exercise> = emptyList(),
     val plans: List<WorkoutPlan> = emptyList(),
     val activePlan: WorkoutPlan? = null,
+    /** Índice do próximo treino sugerido da ficha ativa (derivado do histórico). */
+    val nextDayIndex: Int = 0,
     val sessions: List<WorkoutSession> = emptyList(),
     val personalRecords: Map<String, PersonalRecord> = emptyMap(),
     val goals: List<Goal> = emptyList(),
@@ -87,6 +93,7 @@ class GymTrackViewModel(
     private val repo: GymTrackRepository,
     private val auth: AuthGateway,
     private val sync: CloudSync,
+    private val syncScheduler: SyncScheduler = SyncScheduler.None,
     private val restAlerts: RestTimerAlerts = RestTimerAlerts.None,
     private val workoutExporter: WorkoutExporter = WorkoutExporter.None,
     private val healthData: HealthDataSource = HealthDataSource.None,
@@ -112,11 +119,13 @@ class GymTrackViewModel(
     }
 
     val state: StateFlow<UiState> = combine(library, activeSession, syncInfo, loaded, healthInfo) { lib, active, (status, pending), isLoaded, (weights, importOn) ->
+        val activePlan = activePlanOf(lib.plans)
         UiState(
             loaded = isLoaded,
             exercises = lib.exercises,
             plans = lib.plans,
-            activePlan = lib.plans.find { it.isActive } ?: lib.plans.firstOrNull(),
+            activePlan = activePlan,
+            nextDayIndex = activePlan?.let { nextDayIndex(it, lib.sessions) } ?: 0,
             sessions = lib.sessions,
             personalRecords = lib.personalRecords,
             goals = lib.goals,
@@ -138,6 +147,10 @@ class GymTrackViewModel(
     private val _authError = MutableStateFlow<String?>(null)
     val authError: StateFlow<String?> = _authError.asStateFlow()
 
+    /** Pendências que não subiram quando o usuário pediu para sair (aguardando confirmação), ou null. */
+    private val _signOutPending = MutableStateFlow<Int?>(null)
+    val signOutPending: StateFlow<Int?> = _signOutPending.asStateFlow()
+
     private var syncJob: Job? = null
 
     /** Serializa as gravações da sessão ativa para que um snapshot antigo nunca sobrescreva a sessão concluída. */
@@ -158,25 +171,27 @@ class GymTrackViewModel(
         viewModelScope.launch {
             // Ao logar (ou já logado no start), adota dados locais e sincroniza.
             auth.user.map { it?.uid }.distinctUntilChanged().collect { id ->
-                if (id != null) sync.onLogin(id) else sync.reset()
+                if (id == null) {
+                    sync.reset()
+                } else if (sync.onLogin(id) is SyncResult.Failure) {
+                    // Sem rede agora: tenta de novo em segundo plano quando ela voltar.
+                    syncScheduler.request()
+                }
             }
         }
     }
 
-    /** Dispara uma sincronização (debounced) se houver usuário logado. */
+    /** Agenda uma sincronização em segundo plano (agrupada, só com rede) se houver usuário logado. */
     private fun scheduleSync() {
-        val u = uid ?: return
-        syncJob?.cancel()
-        syncJob = viewModelScope.launch {
-            delay(SYNC_DEBOUNCE_MS)
-            sync.sync(u)
-        }
+        if (uid != null) syncScheduler.request()
     }
 
     fun syncNow() {
         val u = uid ?: return
         syncJob?.cancel()
-        syncJob = viewModelScope.launch { sync.sync(u) }
+        syncJob = viewModelScope.launch {
+            if (sync.sync(u) is SyncResult.Failure) syncScheduler.request()
+        }
     }
 
     /** Força o reenvio de tudo, mesmo o que já estava marcado como sincronizado (ex: depois de habilitar o Firestore). */
@@ -185,7 +200,7 @@ class GymTrackViewModel(
         syncJob?.cancel()
         syncJob = viewModelScope.launch {
             repo.forceFullResync(u)
-            sync.sync(u)
+            if (sync.sync(u) is SyncResult.Failure) syncScheduler.request()
         }
     }
 
@@ -205,7 +220,36 @@ class GymTrackViewModel(
         result.onFailure { _authError.value = it.message ?: "Falha ao entrar." }
     }
 
-    fun signOut() = auth.signOut()
+    /**
+     * Sai da conta e apaga os dados dela deste aparelho (outra conta que entrar não os vê nem os envia).
+     * Antes, tenta enviar as pendências; se alguma não subir, pede confirmação ([signOutPending]).
+     */
+    fun signOut() = viewModelScope.launch {
+        val u = uid ?: return@launch
+        sync.sync(u)
+        val pending = repo.pendingSyncCount.first()
+        if (pending > 0) _signOutPending.value = pending else finishSignOut()
+    }
+
+    /** Sai mesmo com pendências (elas são perdidas). */
+    fun confirmSignOut() = viewModelScope.launch {
+        _signOutPending.value = null
+        finishSignOut()
+    }
+
+    fun cancelSignOut() {
+        _signOutPending.value = null
+    }
+
+    private suspend fun finishSignOut() {
+        syncScheduler.cancel()
+        syncJob?.cancel()
+        stopRestTimer()
+        activeSession.value = null
+        auth.signOut()
+        // Espera uma sincronização em andamento terminar: senão ela regravaria dados depois da limpeza.
+        sync.runExclusive { sessionWriteLock.withLock { repo.clearUserData() } }
+    }
 
     fun clearAuthError() { _authError.value = null }
 
@@ -239,9 +283,10 @@ class GymTrackViewModel(
 
     fun deletePlan(planId: String) = write { repo.deletePlan(planId, uid) }
 
+    /** Atualiza a carga inicial de um exercício na ficha do treino em andamento. */
     fun updateExerciseInitialWeight(workoutExerciseId: String, newWeight: Double) {
-        val plan = state.value.activePlan ?: return
-        write { repo.updateExerciseInitialWeight(plan.id, workoutExerciseId, newWeight, uid) }
+        val planId = activeSession.value?.session?.workoutPlanId ?: state.value.activePlan?.id ?: return
+        write { repo.updateExerciseInitialWeight(planId, workoutExerciseId, newWeight, uid) }
     }
 
     // ---------------- Sessão em andamento ----------------
@@ -258,13 +303,13 @@ class GymTrackViewModel(
         )
     }
 
-    /** @param dayIndex dia escolhido; se null, usa o próximo sugerido (currentDayIndex). */
+    /** @param dayIndex dia escolhido; se null, usa o próximo sugerido ([UiState.nextDayIndex]). */
     fun startSession(dayIndex: Int? = null, onStarted: () -> Unit = {}) = viewModelScope.launch {
         val s = state.value
         if (activeSession.value != null) return@launch
         val plan = s.activePlan ?: return@launch
         if (plan.days.isEmpty()) return@launch
-        val day = plan.days[(dayIndex ?: plan.currentDayIndex) % plan.days.size]
+        val day = plan.days[(dayIndex ?: s.nextDayIndex) % plan.days.size]
         val now = clock()
 
         val sessionExercises = day.exercises.sortedBy { it.order }.map { we ->
@@ -472,7 +517,6 @@ class GymTrackViewModel(
     fun deleteGoal(id: String) = write { repo.deleteGoal(id, uid) }
 
     companion object {
-        const val SYNC_DEBOUNCE_MS = 1200L
         const val HEALTH_REFRESH_INTERVAL_MS = 5 * 60_000L
         const val HEALTH_RECENT_MS = 3 * 86_400_000L
         const val HEALTH_BACKFILL_MS = 30 * 86_400_000L
@@ -482,13 +526,14 @@ class GymTrackViewModel(
             repo: GymTrackRepository,
             auth: AuthGateway,
             sync: CloudSync,
+            syncScheduler: SyncScheduler,
             restAlerts: RestTimerAlerts,
             workoutExporter: WorkoutExporter,
             healthData: HealthDataSource,
         ) = object : ViewModelProvider.Factory {
             @Suppress("UNCHECKED_CAST")
             override fun <T : ViewModel> create(modelClass: Class<T>): T =
-                GymTrackViewModel(repo, auth, sync, restAlerts, workoutExporter, healthData) as T
+                GymTrackViewModel(repo, auth, sync, syncScheduler, restAlerts, workoutExporter, healthData) as T
         }
     }
 }

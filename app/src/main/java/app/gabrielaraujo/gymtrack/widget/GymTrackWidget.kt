@@ -13,7 +13,9 @@ import app.gabrielaraujo.gymtrack.R
 import app.gabrielaraujo.gymtrack.data.WorkoutPlan
 import app.gabrielaraujo.gymtrack.data.WorkoutSession
 import app.gabrielaraujo.gymtrack.domain.STREAK_WINDOW_DAYS
+import app.gabrielaraujo.gymtrack.domain.activePlanOf
 import app.gabrielaraujo.gymtrack.domain.computeStreak
+import app.gabrielaraujo.gymtrack.domain.nextDayIndex
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -44,10 +46,10 @@ object WidgetUpdater {
     }
 
     private fun render(context: Context, sessions: List<WorkoutSession>, plans: List<WorkoutPlan>): RemoteViews {
-        val streak = computeStreak(sessions.filter { it.completed && !it.deleted }.map { it.startTime })
-        val live = plans.filter { !it.deleted }
-        val plan = live.find { it.isActive } ?: live.firstOrNull()
-        val next = plan?.days?.takeIf { it.isNotEmpty() }?.let { it[plan.currentDayIndex % it.size] }
+        val done = sessions.filter { it.completed && !it.deleted }
+        val streak = computeStreak(done.map { it.startTime })
+        val plan = activePlanOf(plans)
+        val next = plan?.days?.takeIf { it.isNotEmpty() }?.let { it[nextDayIndex(plan, done)] }
 
         val status = when {
             streak.lastWorkout == null -> "Faça o primeiro treino!"

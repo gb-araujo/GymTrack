@@ -74,13 +74,19 @@ fun getSuggestions(exerciseId: String, all: List<Exercise>): List<Exercise> {
         .toList()
 }
 
-/** Ficha exemplo "Hipertrofia" A/B/C (portada de samplePlan.ts). */
+/** Id fixo da ficha exemplo: é o mesmo em todo aparelho. */
+const val SAMPLE_PLAN_ID = "sample_hipertrofia"
+
+/**
+ * Ficha exemplo "Hipertrofia" A/B/C (portada de samplePlan.ts).
+ * `updatedAt = 0` marca a ficha como nunca editada: qualquer versão dela que já esteja na nuvem vence.
+ */
 fun buildSamplePlan(now: Long): WorkoutPlan = WorkoutPlan(
-    id = "sample_hipertrofia",
+    id = SAMPLE_PLAN_ID,
     name = "Hipertrofia",
     currentDayIndex = 0,
     createdAt = now,
-    updatedAt = now,
+    updatedAt = 0,
     isActive = true,
     days = listOf(
         WorkoutDay(

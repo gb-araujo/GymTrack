@@ -110,6 +110,9 @@ dependencies {
 
     implementation(libs.androidx.health.connect)
 
+    // Sincronização em segundo plano: roda quando houver rede, com novas tentativas e backoff.
+    implementation(libs.androidx.work.runtime)
+
     testImplementation(libs.junit)
     testImplementation(libs.robolectric)
     testImplementation(libs.androidx.test.core)

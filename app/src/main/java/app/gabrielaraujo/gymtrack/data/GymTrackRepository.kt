@@ -34,7 +34,7 @@ class GymTrackRepository(
     }
 
     /** Marca tudo que é do usuário como pendente, para reenviar mesmo o que já estava (supostamente) sincronizado. */
-    suspend fun forceFullResync(uid: String) {
+    suspend fun forceFullResync(uid: String) = db.withTransaction {
         dao.markAllPlansDirty(uid)
         dao.markAllSessionsDirty(uid)
         dao.markAllPersonalRecordsDirty(uid)
@@ -46,8 +46,13 @@ class GymTrackRepository(
 
     suspend fun plansSnapshot(): List<WorkoutPlan> = dao.getPlans()
 
-    suspend fun savePlan(plan: WorkoutPlan, uid: String?) {
-        dao.upsertPlan(plan.copy(updatedAt = clock(), ownerId = uid ?: plan.ownerId, dirty = true))
+    /**
+     * Salva nome e dias da ficha (o que o editor muda). Ficha ativa e exclusão vêm do banco, que pode
+     * ter mudado (ex.: pela sincronização) enquanto o editor estava aberto com uma cópia.
+     */
+    suspend fun savePlan(plan: WorkoutPlan, uid: String?) = db.withTransaction {
+        val base = dao.getPlan(plan.id)?.copy(name = plan.name, days = plan.days, deleted = false) ?: plan
+        dao.upsertPlan(base.copy(updatedAt = clock(), ownerId = uid ?: base.ownerId, dirty = true))
     }
 
     suspend fun setActivePlan(planId: String, uid: String?) = db.withTransaction {
@@ -61,13 +66,13 @@ class GymTrackRepository(
         if (updated.isNotEmpty()) dao.upsertPlans(updated)
     }
 
-    suspend fun deletePlan(planId: String, uid: String?) {
-        val plan = dao.getPlan(planId) ?: return
+    suspend fun deletePlan(planId: String, uid: String?) = db.withTransaction {
+        val plan = dao.getPlan(planId) ?: return@withTransaction
         dao.upsertPlan(plan.copy(deleted = true, isActive = false, dirty = true, updatedAt = clock(), ownerId = uid ?: plan.ownerId))
     }
 
-    suspend fun updateExerciseInitialWeight(planId: String, workoutExerciseId: String, weight: Double, uid: String?) {
-        val plan = dao.getPlan(planId) ?: return
+    suspend fun updateExerciseInitialWeight(planId: String, workoutExerciseId: String, weight: Double, uid: String?) = db.withTransaction {
+        val plan = dao.getPlan(planId) ?: return@withTransaction
         val days = plan.days.map { day ->
             day.copy(exercises = day.exercises.map { ex -> if (ex.id == workoutExerciseId) ex.copy(initialWeight = weight) else ex })
         }
@@ -83,8 +88,8 @@ class GymTrackRepository(
         )
     }
 
-    suspend fun deleteCustomExercise(id: String, uid: String?) {
-        val ex = dao.getExercise(id) ?: return
+    suspend fun deleteCustomExercise(id: String, uid: String?) = db.withTransaction {
+        val ex = dao.getExercise(id) ?: return@withTransaction
         dao.upsertExercise(ex.copy(deleted = true, dirty = true, updatedAt = clock(), ownerId = uid ?: ex.ownerId))
     }
 
@@ -94,8 +99,8 @@ class GymTrackRepository(
         dao.upsertGoal(goal.copy(ownerId = uid ?: goal.ownerId, updatedAt = clock(), dirty = true))
     }
 
-    suspend fun deleteGoal(id: String, uid: String?) {
-        val goal = dao.getGoal(id) ?: return
+    suspend fun deleteGoal(id: String, uid: String?) = db.withTransaction {
+        val goal = dao.getGoal(id) ?: return@withTransaction
         dao.upsertGoal(goal.copy(deleted = true, dirty = true, updatedAt = clock(), ownerId = uid ?: goal.ownerId))
     }
 
@@ -122,8 +127,9 @@ class GymTrackRepository(
     }
 
     /**
-     * Conclui o treino: calcula totais, recordes pessoais e avança a ficha para o próximo dia.
-     * Tudo numa transação, para o treino nunca ficar salvo pela metade.
+     * Conclui o treino: calcula totais e recordes pessoais. Tudo numa transação, para o treino nunca
+     * ficar salvo pela metade. O próximo treino da ficha é derivado do histórico (`nextDayIndex`),
+     * então a ficha não é regravada (o que disputaria a sincronização com edições feitas nela).
      */
     suspend fun completeSession(session: WorkoutSession, uid: String?): WorkoutSession = db.withTransaction {
         val endTime = clock()
@@ -139,21 +145,6 @@ class GymTrackRepository(
             dirty = true,
         )
         dao.upsertSession(completed)
-
-        // O próximo sugerido segue o treino que foi realmente feito.
-        dao.getPlan(session.workoutPlanId)?.takeIf { !it.deleted && it.days.isNotEmpty() }?.let { plan ->
-            val doneIndex = plan.days.indexOfFirst { it.id == session.workoutDayId }
-            val baseIndex = if (doneIndex >= 0) doneIndex else plan.currentDayIndex
-            dao.upsertPlan(
-                plan.copy(
-                    currentDayIndex = (baseIndex + 1) % plan.days.size,
-                    updatedAt = endTime,
-                    ownerId = uid ?: plan.ownerId,
-                    dirty = true,
-                ),
-            )
-        }
-
         recomputeRecordsLocked(uid, endTime)
         dao.getSession(completed.id) ?: completed
     }
@@ -178,6 +169,9 @@ class GymTrackRepository(
     /**
      * Grava a frequência cardíaca e as calorias medidas pelo relógio num treino concluído.
      * Uma medida que sumiu do Health Connect não apaga a que já estava salva.
+     *
+     * Medidas não são edição do usuário: o `updatedAt` avança só 1 ms (o bastante para o envio
+     * condicional notar a mudança), para nunca vencer o LWW contra uma edição feita em outro aparelho.
      * @return o treino atualizado, ou null se nada mudou.
      */
     suspend fun updateSessionHealthMetrics(id: String, metrics: WorkoutHealthMetrics, uid: String?): WorkoutSession? =
@@ -189,7 +183,7 @@ class GymTrackRepository(
                 calories = metrics.calories ?: session.calories,
             )
             if (merged == session) return@withTransaction null
-            merged.copy(updatedAt = clock(), dirty = true, ownerId = uid ?: session.ownerId).also { dao.upsertSession(it) }
+            merged.copy(updatedAt = session.updatedAt + 1, dirty = true, ownerId = uid ?: session.ownerId).also { dao.upsertSession(it) }
         }
 
     /** Exclui um treino do histórico (tombstone, para propagar) e recalcula os recordes. */
@@ -199,6 +193,9 @@ class GymTrackRepository(
         dao.upsertSession(session.copy(deleted = true, dirty = true, updatedAt = now, ownerId = uid ?: session.ownerId))
         recomputeRecordsLocked(uid, now)
     }
+
+    /** Recalcula recordes e PRs a partir do histórico (ex.: depois de chegarem treinos de outro aparelho). */
+    suspend fun recomputeRecords(uid: String?) = db.withTransaction { recomputeRecordsLocked(uid, clock()) }
 
     /**
      * Recalcula recordes e os PRs de cada sessão a partir do histórico.
@@ -217,9 +214,23 @@ class GymTrackRepository(
 
         val sessionChanges = sessions.mapNotNull { s ->
             val prs = result.prsBySession[s.id].orEmpty()
-            if (prs != s.prsAchieved) s.copy(prsAchieved = prs, updatedAt = now, dirty = true, ownerId = uid ?: s.ownerId) else null
+            // Derivado do histórico: não é edição do treino (não avança updatedAt nem entra na fila de envio).
+            if (prs != s.prsAchieved) s.copy(prsAchieved = prs) else null
         }
         if (sessionChanges.isNotEmpty()) dao.upsertSessions(sessionChanges)
+    }
+
+    // ---------------- Conta ----------------
+
+    /** Apaga os dados do usuário deste aparelho (logout) e semeia de novo a ficha exemplo. Exercícios nativos ficam. */
+    suspend fun clearUserData() = db.withTransaction {
+        dao.deleteAllSessions()
+        dao.deleteAllPlans()
+        dao.deleteAllPersonalRecords()
+        dao.deleteAllGoals()
+        dao.deleteCustomExercises()
+        dao.deleteSyncMeta()
+        seedIfEmpty()
     }
 
     // ---------------- Backup ----------------

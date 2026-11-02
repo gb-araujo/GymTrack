@@ -68,10 +68,11 @@ fun HomeScreen(
     val state by vm.state.collectAsStateWithLifecycle()
     val user by vm.user.collectAsStateWithLifecycle()
     val plan = state.activePlan
-    val nextDay = plan?.days?.getOrNull(if (plan.days.isEmpty()) 0 else plan.currentDayIndex % plan.days.size)
+    val nextDay = plan?.days?.getOrNull(state.nextDayIndex)
     val lastSession = state.sessions.firstOrNull()
     val prs = state.personalRecords.values.take(3)
     var showAccount by remember { mutableStateOf(false) }
+    val signOutPending by vm.signOutPending.collectAsStateWithLifecycle()
     var showDayPicker by remember { mutableStateOf(false) }
 
     Box(Modifier.fillMaxWidth()) {
@@ -219,9 +220,13 @@ fun HomeScreen(
     }
 
     if (showAccount) AccountDialog(vm) { showAccount = false }
+    signOutPending?.let { pending ->
+        SignOutConfirmDialog(pending, onConfirm = { vm.confirmSignOut() }, onCancel = { vm.cancelSignOut() })
+    }
     if (showDayPicker && plan != null) {
         DayPickerDialog(
             plan = plan,
+            nextIndex = state.nextDayIndex,
             onPick = { index -> showDayPicker = false; vm.startSession(dayIndex = index, onStarted = onStart) },
             onClose = { showDayPicker = false },
         )
@@ -232,6 +237,7 @@ fun HomeScreen(
 @Composable
 private fun DayPickerDialog(
     plan: app.gabrielaraujo.gymtrack.data.WorkoutPlan,
+    nextIndex: Int,
     onPick: (Int) -> Unit,
     onClose: () -> Unit,
 ) {
@@ -239,10 +245,10 @@ private fun DayPickerDialog(
         Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(TC.Slate900).padding(20.dp)) {
             Text("Escolher treino", color = TC.White, fontSize = 18.sp, fontWeight = FontWeight.Bold)
             Spacer(Modifier.height(4.dp))
-            Text("O próximo sugerido continua sendo ${plan.days.getOrNull(plan.currentDayIndex % plan.days.size.coerceAtLeast(1))?.label ?: "—"}.", color = TC.Slate500, fontSize = 12.sp)
+            Text("O próximo sugerido continua sendo ${plan.days.getOrNull(nextIndex)?.label ?: "—"}.", color = TC.Slate500, fontSize = 12.sp)
             Spacer(Modifier.height(12.dp))
             plan.days.forEachIndexed { index, day ->
-                val isNext = index == plan.currentDayIndex % plan.days.size
+                val isNext = index == nextIndex
                 Row(
                     Modifier.fillMaxWidth().padding(vertical = 3.dp).clip(RoundedCornerShape(12.dp))
                         .background(if (isNext) TC.Indigo600.copy(alpha = 0.25f) else TC.Slate800)
@@ -259,6 +265,25 @@ private fun DayPickerDialog(
                     }
                     if (isNext) Text("PRÓXIMO", color = TC.Indigo400, fontSize = 10.sp, fontWeight = FontWeight.Bold)
                 }
+            }
+        }
+    }
+}
+
+/** Confirmação de saída quando há alterações que ainda não subiram para a nuvem. */
+@Composable
+private fun SignOutConfirmDialog(pending: Int, onConfirm: () -> Unit, onCancel: () -> Unit) {
+    androidx.compose.ui.window.Dialog(onDismissRequest = onCancel) {
+        Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(TC.Slate900).padding(24.dp)) {
+            Text("Sair sem sincronizar?", color = TC.White, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+            Text(
+                (if (pending == 1) "1 alteração ainda não foi enviada" else "$pending alterações ainda não foram enviadas") +
+                    " para a nuvem. Ao sair, os dados da conta são apagados deste aparelho e essas alterações serão perdidas.",
+                color = TC.Slate400, fontSize = 14.sp, modifier = Modifier.padding(vertical = 12.dp),
+            )
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                GymTrackButton("Cancelar", onClick = onCancel, variant = BtnVariant.Ghost, modifier = Modifier.weight(1f))
+                GymTrackButton("Sair", onClick = onConfirm, variant = BtnVariant.Danger, modifier = Modifier.weight(1f))
             }
         }
     }

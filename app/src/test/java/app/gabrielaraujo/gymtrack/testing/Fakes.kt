@@ -13,6 +13,8 @@ import app.gabrielaraujo.gymtrack.domain.WorkoutHealthMetrics
 import app.gabrielaraujo.gymtrack.health.HealthDataSource
 import app.gabrielaraujo.gymtrack.health.WorkoutExporter
 import app.gabrielaraujo.gymtrack.sync.CloudSync
+import app.gabrielaraujo.gymtrack.sync.SyncResult
+import app.gabrielaraujo.gymtrack.sync.SyncScheduler
 import app.gabrielaraujo.gymtrack.sync.SyncStatus
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -28,9 +30,18 @@ class FakeAuth(uid: String? = null) : AuthGateway {
 class FakeSync : CloudSync {
     override val status: StateFlow<SyncStatus> = MutableStateFlow(SyncStatus.Idle)
     var syncs = 0
-    override suspend fun onLogin(uid: String) { syncs++ }
-    override suspend fun sync(uid: String) { syncs++ }
+    override suspend fun onLogin(uid: String): SyncResult { syncs++; return SyncResult.Success }
+    override suspend fun sync(uid: String): SyncResult { syncs++; return SyncResult.Success }
     override fun reset() = Unit
+    override suspend fun runExclusive(block: suspend () -> Unit) = block()
+}
+
+/** Conta os pedidos de sincronização em segundo plano. */
+class FakeSyncScheduler : SyncScheduler {
+    @Volatile var requests = 0
+    @Volatile var cancels = 0
+    override fun request() { requests++ }
+    override fun cancel() { cancels++ }
 }
 
 /** Registra o que seria enviado ao Health Connect. */

@@ -40,17 +40,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.gabrielaraujo.gymtrack.data.WorkoutPlan
-import app.gabrielaraujo.gymtrack.data.newId
+import app.gabrielaraujo.gymtrack.domain.PlanCodec
 import app.gabrielaraujo.gymtrack.ui.components.BtnVariant
 import app.gabrielaraujo.gymtrack.ui.components.GymTrackButton
 import app.gabrielaraujo.gymtrack.ui.theme.TC
-import kotlinx.serialization.Serializable
-import kotlinx.serialization.json.Json
-
-@Serializable
-private data class PlanExport(val schemaVersion: Int = 1, val workoutPlan: WorkoutPlan)
-
-private val exportJson = Json { prettyPrint = true; ignoreUnknownKeys = true }
 
 @Composable
 fun WorkoutPlansScreen(vm: PlansViewModel, onEditPlan: (String) -> Unit, onNewPlan: () -> Unit) {
@@ -102,8 +95,7 @@ fun WorkoutPlansScreen(vm: PlansViewModel, onEditPlan: (String) -> Unit, onNewPl
     if (showImport) {
         ImportDialog(
             onImport = { text ->
-                val plan = parseImport(text) ?: return@ImportDialog false
-                vm.import(plan)
+                if (!vm.import(text)) return@ImportDialog false
                 showImport = false
                 true
             },
@@ -183,19 +175,11 @@ private fun ImportDialog(onImport: (String) -> Boolean, onClose: () -> Unit) {
 }
 
 private fun sharePlan(context: android.content.Context, plan: WorkoutPlan) {
-    val data = exportJson.encodeToString(PlanExport.serializer(), PlanExport(workoutPlan = plan))
+    val data = PlanCodec.encode(plan)
     val intent = Intent(Intent.ACTION_SEND).apply {
         type = "application/json"
         putExtra(Intent.EXTRA_SUBJECT, "${plan.name}.json")
         putExtra(Intent.EXTRA_TEXT, data)
     }
     context.startActivity(Intent.createChooser(intent, "Exportar ficha"))
-}
-
-private fun parseImport(text: String): WorkoutPlan? = try {
-    val parsed = exportJson.decodeFromString(PlanExport.serializer(), text)
-    val now = System.currentTimeMillis()
-    parsed.workoutPlan.copy(id = newId(), currentDayIndex = 0, createdAt = now, updatedAt = now, isActive = false)
-} catch (_: Exception) {
-    null
 }

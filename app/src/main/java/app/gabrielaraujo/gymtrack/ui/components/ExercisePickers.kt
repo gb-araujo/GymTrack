@@ -79,10 +79,11 @@ fun ExercisePickerDialog(exercises: List<Exercise>, onSelect: (String, String) -
                 items(filtered) { ex ->
                     Row(
                         Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).background(TC.Slate800).clickable { onSelect(ex.id, ex.name) }.padding(12.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        Column {
+                        ExerciseIllustration(ex.id, Modifier.size(44.dp))
+                        Column(Modifier.weight(1f)) {
                             Text(ex.name, color = TC.White, fontSize = 14.sp, fontWeight = FontWeight.Medium)
                             Text("${ex.primaryMuscle} · ${ex.equipment}${if (ex.isCustom) " · Personalizado" else ""}", color = TC.Slate400, fontSize = 12.sp)
                         }
@@ -129,10 +130,12 @@ fun ExerciseSubstituteDialog(
                         val equivalent = ex.primaryMuscle == target?.primaryMuscle && ex.movementPattern == target.movementPattern
                         Row(
                             Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).background(TC.Slate800)
-                                .clickable { onSubstitute(ex.id); onClose() }.padding(16.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween,
+                                .clickable { onSubstitute(ex.id); onClose() }.padding(12.dp),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            verticalAlignment = Alignment.CenterVertically,
                         ) {
-                            Column {
+                            ExerciseIllustration(ex.id, Modifier.size(48.dp))
+                            Column(Modifier.weight(1f)) {
                                 Text(ex.name, color = TC.White, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
                                 Text("${ex.primaryMuscle} · ${ex.equipment}", color = TC.Slate400, fontSize = 12.sp)
                             }

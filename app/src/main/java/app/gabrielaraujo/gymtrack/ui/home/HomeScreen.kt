@@ -40,6 +40,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.gabrielaraujo.gymtrack.ui.account.AccountDialog
 import app.gabrielaraujo.gymtrack.ui.account.AccountViewModel
 import app.gabrielaraujo.gymtrack.ui.account.SignOutConfirmDialog
+import app.gabrielaraujo.gymtrack.data.exerciseDisplayName
+import app.gabrielaraujo.gymtrack.ui.components.SectionLabel
 import app.gabrielaraujo.gymtrack.ui.components.GymTrackButton
 import app.gabrielaraujo.gymtrack.ui.components.GymTrackCard
 import app.gabrielaraujo.gymtrack.ui.components.SectionLabel
@@ -65,6 +67,7 @@ fun HomeScreen(
     val nextDay = plan?.days?.getOrNull(state.nextDayIndex)
     val lastSession = state.lastSession
     val prs = state.topRecords
+    val byId = state.exercisesById
     var showAccount by remember { mutableStateOf(false) }
     var showDayPicker by remember { mutableStateOf(false) }
 
@@ -192,7 +195,7 @@ fun HomeScreen(
                 GymTrackCard {
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                         Column {
-                            Text(pr.exerciseName, color = TC.White, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+                            Text(exerciseDisplayName(pr.exerciseId, byId, pr.exerciseName), color = TC.White, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
                             Text(timeAgo(pr.date), color = TC.Slate500, fontSize = 12.sp)
                         }
                         Column(horizontalAlignment = Alignment.End) {

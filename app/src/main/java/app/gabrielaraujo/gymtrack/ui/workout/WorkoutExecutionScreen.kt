@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -58,6 +59,7 @@ import app.gabrielaraujo.gymtrack.data.SetRecord
 import app.gabrielaraujo.gymtrack.domain.progression.suggestedNextWeight
 import app.gabrielaraujo.gymtrack.ui.components.BtnVariant
 import app.gabrielaraujo.gymtrack.ui.components.ExerciseSubstituteDialog
+import app.gabrielaraujo.gymtrack.ui.components.ExerciseIllustration
 import app.gabrielaraujo.gymtrack.ui.components.GymTrackButton
 import app.gabrielaraujo.gymtrack.ui.components.NumberStepper
 import app.gabrielaraujo.gymtrack.ui.formatWeight
@@ -96,6 +98,7 @@ fun WorkoutExecutionScreen(vm: WorkoutViewModel) {
     RequestNotificationPermission()
 
     var showSubstitute by remember { mutableStateOf(false) }
+    var showIllustration by remember { mutableStateOf(false) }
     var showAbort by remember { mutableStateOf(false) }
     var progressionSuggestion by remember(idx) { mutableStateOf<Double?>(null) }
 
@@ -185,7 +188,13 @@ fun WorkoutExecutionScreen(vm: WorkoutViewModel) {
             }
 
             // Exercise header
-            Row(Modifier.fillMaxWidth().padding(top = 4.dp), horizontalArrangement = Arrangement.SpaceBetween) {
+            Row(Modifier.fillMaxWidth().padding(top = 4.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                ExerciseIllustration(
+                    current.exerciseId,
+                    Modifier.size(72.dp).clip(RoundedCornerShape(10.dp)).clickable { showIllustration = !showIllustration },
+                    animate = true,
+                    contentDescription = "Ilustração do exercício (toque para ampliar)",
+                )
                 Column(Modifier.weight(1f)) {
                     Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                         if (current.completed) Badge("✓ Concluído", TC.Emerald400, TC.Emerald600.copy(alpha = 0.3f))
@@ -203,6 +212,15 @@ fun WorkoutExecutionScreen(vm: WorkoutViewModel) {
                     }
                 }
                 Icon(Icons.Default.SwapHoriz, "Substituir", tint = TC.Slate500, modifier = Modifier.clip(RoundedCornerShape(10.dp)).clickable { showSubstitute = true }.padding(6.dp))
+            }
+            if (showIllustration) {
+                ExerciseIllustration(
+                    current.exerciseId,
+                    Modifier.padding(top = 12.dp).fillMaxWidth().aspectRatio(3f / 2f).clip(RoundedCornerShape(16.dp)).clickable { showIllustration = false },
+                    animate = true,
+                    cornerRadius = 16.dp,
+                    contentDescription = "Ilustração do exercício",
+                )
             }
 
             // Set dots

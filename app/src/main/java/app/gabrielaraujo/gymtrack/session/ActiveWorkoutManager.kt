@@ -4,6 +4,7 @@ import app.gabrielaraujo.gymtrack.data.SessionExercise
 import app.gabrielaraujo.gymtrack.data.SetRecord
 import app.gabrielaraujo.gymtrack.data.WorkoutPlan
 import app.gabrielaraujo.gymtrack.data.WorkoutSession
+import app.gabrielaraujo.gymtrack.data.humanizeExerciseId
 import app.gabrielaraujo.gymtrack.data.newId
 import app.gabrielaraujo.gymtrack.data.repository.WorkoutSessionRepository
 import kotlinx.coroutines.CoroutineScope
@@ -95,7 +96,7 @@ class ActiveWorkoutManager(
                         id = newId(),
                         exerciseId = we.exerciseId,
                         workoutExerciseId = we.id,
-                        name = exerciseName(we.exerciseId) ?: we.exerciseId,
+                        name = exerciseName(we.exerciseId) ?: humanizeExerciseId(we.exerciseId),
                         sets = List(we.sets) { SetRecord(id = newId(), weight = we.initialWeight, reps = we.repMax) },
                         order = we.order,
                     )

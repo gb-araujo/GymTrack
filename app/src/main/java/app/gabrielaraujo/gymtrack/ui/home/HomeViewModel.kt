@@ -2,6 +2,7 @@ package app.gabrielaraujo.gymtrack.ui.home
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import app.gabrielaraujo.gymtrack.data.Exercise
 import app.gabrielaraujo.gymtrack.data.PersonalRecord
 import app.gabrielaraujo.gymtrack.data.WorkoutPlan
 import app.gabrielaraujo.gymtrack.data.WorkoutSession
@@ -34,6 +35,8 @@ data class HomeUiState(
     val streak: StreakInfo = computeStreak(emptyList()),
     val totalWorkouts: Int = 0,
     val workoutsThisMonth: Int = 0,
+    /** Biblioteca por id, para mostrar o nome atual de cada exercício (ver exerciseDisplayName). */
+    val exercisesById: Map<String, Exercise> = emptyMap(),
 )
 
 /** Início: próximo treino, ofensiva, último treino, recordes e estatísticas. */
@@ -45,7 +48,7 @@ class HomeViewModel(
     private val workout: ActiveWorkoutManager,
 ) : ViewModel() {
     val state: StateFlow<HomeUiState> =
-        combine(plans.plans, sessions.completedSessions, records.personalRecords) { planList, done, recordList ->
+        combine(plans.plans, sessions.completedSessions, records.personalRecords, exercises.exercises) { planList, done, recordList, library ->
             val activePlan = activePlanOf(planList)
             val best = bestRecordsByExercise(recordList)
             val times = done.map { it.startTime }
@@ -59,6 +62,7 @@ class HomeViewModel(
                 streak = computeStreak(times),
                 totalWorkouts = done.size,
                 workoutsThisMonth = workoutsInMonth(times),
+                exercisesById = library.associateBy { it.id },
             )
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), HomeUiState())
 

@@ -16,9 +16,18 @@ class UserDataRepository(
     /** Registros esperando envio à nuvem (para o indicador de sincronização). */
     val pendingSyncCount: Flow<Int> = dao.observePendingCount()
 
-    /** Semeia exercícios e ficha exemplo na primeira execução. */
+    /**
+     * Semeia a ficha exemplo na primeira execução e mantém a biblioteca nativa igual à de [builtinExercises]
+     * (nomes revisados chegam a quem já tinha o app). Só grava exercício nativo novo ou alterado, e nunca
+     * sobrescreve um personalizado. Os nativos não são do usuário: não ficam pendentes nem sobem para a nuvem.
+     */
     suspend fun seedIfEmpty() {
-        if (dao.exerciseCount() == 0) dao.insertExercises(builtinExercises)
+        val existing = dao.getExercises().associateBy { it.id }
+        val outdated = builtinExercises.filter { builtin ->
+            val current = existing[builtin.id]
+            current == null || (!current.isCustom && current != builtin)
+        }
+        if (outdated.isNotEmpty()) dao.insertExercises(outdated)
         if (dao.planCount() == 0) dao.upsertPlan(buildSamplePlan(clock()))
     }
 

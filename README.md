@@ -51,6 +51,24 @@ Offline-first: tudo fica no aparelho (Room) e, com login Google, sincroniza com 
 
 Na primeira execução, o banco é semeado com ~45 exercícios e uma ficha exemplo "Hipertrofia" (A/B/C).
 
+## Exercícios: ids, nomes e ilustrações
+
+O `exerciseId` (ex.: `agachamento_hack`) é a chave que a ficha em JSON, o backup, a nuvem, os treinos
+e os recordes guardam. Ele nunca muda. O nome e a ilustração são só exibição, resolvidos pelo id
+(`data/ExerciseCatalog.kt`):
+
+- **Renomear um exercício nativo** — mude só o nome em `data/Seed.kt`. A biblioteca nativa é
+  reconciliada a cada abertura, então o nome novo chega a quem já tem o app, e o histórico passa a
+  mostrá-lo.
+- **Importar ficha** — ids escritos de outro jeito (`"Agachamento-Hack"`, `"hack_squat"`,
+  `"cadeira_extensora"`) são ligados ao exercício da biblioteca. Um id desconhecido é aceito e aparece
+  com um nome legível ("Exercicio Inventado") em vez do id cru.
+- **Ilustrações** — duas fotos por exercício (início e fim do movimento) em
+  `app/src/main/assets/exercises/<id>/0.webp` e `1.webp`, alternadas como animação no treino. Vêm do
+  [free-exercise-db](https://github.com/yuhonas/free-exercise-db) (domínio público, Unlicense) e são
+  geradas por `python scripts/fetch_exercise_images.py` (requer Pillow). Para um exercício nativo
+  novo, adicione o mapeamento no script e rode de novo. Exercícios personalizados mostram um ícone.
+
 ## Samsung Health e Health Connect
 
 Não há integração direta com o Samsung Health: ele sincroniza com o **Health Connect** nos dois

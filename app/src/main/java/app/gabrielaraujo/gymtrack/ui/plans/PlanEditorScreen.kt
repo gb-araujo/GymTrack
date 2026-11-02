@@ -40,6 +40,8 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.gabrielaraujo.gymtrack.data.WorkoutDay
 import app.gabrielaraujo.gymtrack.data.WorkoutExercise
+import app.gabrielaraujo.gymtrack.data.humanizeExerciseId
+import app.gabrielaraujo.gymtrack.ui.components.ExerciseIllustration
 import app.gabrielaraujo.gymtrack.data.newId
 import app.gabrielaraujo.gymtrack.ui.components.ExercisePickerDialog
 import app.gabrielaraujo.gymtrack.ui.components.NumberStepper
@@ -78,10 +80,11 @@ fun PlanEditorScreen(vm: PlanEditorViewModel, onDone: () -> Unit) {
                     }
                     Spacer(Modifier.height(8.dp))
                     day.exercises.forEach { we ->
-                        val ex = state.exercises.find { it.id == we.exerciseId }
+                        val ex = state.exercisesById[we.exerciseId]
                         Column(Modifier.fillMaxWidth().padding(vertical = 4.dp).clip(RoundedCornerShape(12.dp)).background(TC.Slate800).padding(12.dp)) {
-                            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                                Text(ex?.name ?: we.exerciseId, color = TC.White, fontSize = 14.sp, fontWeight = FontWeight.Medium)
+                            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
+                                ExerciseIllustration(we.exerciseId, Modifier.size(40.dp))
+                                Text(ex?.name ?: humanizeExerciseId(we.exerciseId), color = TC.White, fontSize = 14.sp, fontWeight = FontWeight.Medium, modifier = Modifier.weight(1f))
                                 Icon(Icons.Default.Delete, "Remover", tint = TC.Slate500, modifier = Modifier.size(18.dp).clickable {
                                     updateDay(day.id) { d -> d.copy(exercises = d.exercises.filter { it.id != we.id }.mapIndexed { i, e -> e.copy(order = i) }) }
                                 })
@@ -116,7 +119,7 @@ fun PlanEditorScreen(vm: PlanEditorViewModel, onDone: () -> Unit) {
     }
 
     pickingForDay?.let { dayId ->
-        ExercisePickerDialog(state.exercises, onSelect = { id, _ ->
+        ExercisePickerDialog(state.exercisesById.values.toList(), onSelect = { id, _ ->
             updateDay(dayId) { d ->
                 d.copy(exercises = d.exercises + WorkoutExercise(id = newId(), exerciseId = id, sets = 3, repMin = 8, repMax = 12, restSeconds = 90, initialWeight = 0.0, order = d.exercises.size))
             }

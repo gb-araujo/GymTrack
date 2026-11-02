@@ -2,7 +2,9 @@ package app.gabrielaraujo.gymtrack.ui.progress
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import app.gabrielaraujo.gymtrack.data.Exercise
 import app.gabrielaraujo.gymtrack.data.PersonalRecord
+import app.gabrielaraujo.gymtrack.data.repository.ExerciseRepository
 import app.gabrielaraujo.gymtrack.data.repository.PersonalRecordRepository
 import app.gabrielaraujo.gymtrack.data.repository.WorkoutSessionRepository
 import app.gabrielaraujo.gymtrack.domain.health.BodyWeightEntry
@@ -28,17 +30,20 @@ data class ProgressUiState(
     /** Treinos por semana nas últimas semanas (a mais antiga primeiro). */
     val weeklyCounts: List<Int> = emptyList(),
     val bodyWeights: List<BodyWeightEntry> = emptyList(),
+    /** Biblioteca por id, para mostrar o nome atual de cada exercício (ver exerciseDisplayName). */
+    val exercisesById: Map<String, Exercise> = emptyMap(),
 )
 
 /** Progresso: recordes, volume, frequência e peso corporal. */
 class ProgressViewModel(
     sessions: WorkoutSessionRepository,
     records: PersonalRecordRepository,
+    exercises: ExerciseRepository,
     bodyWeights: Flow<List<BodyWeightEntry>>,
     private val clock: () -> Long = System::currentTimeMillis,
 ) : ViewModel() {
     val state: StateFlow<ProgressUiState> =
-        combine(sessions.completedSessions, records.personalRecords, bodyWeights) { done, recordList, weights ->
+        combine(sessions.completedSessions, records.personalRecords, exercises.exercises, bodyWeights) { done, recordList, library, weights ->
             val best = bestRecordsByExercise(recordList).values.sortedByDescending { it.date }
             val times = done.map { it.startTime }
             ProgressUiState(
@@ -49,6 +54,7 @@ class ProgressViewModel(
                 recentVolumesTons = done.take(RECENT_SESSIONS).reversed().map { (it.totalVolume ?: 0.0) / 1000 },
                 weeklyCounts = weeklyCounts(times, now = clock()),
                 bodyWeights = weights,
+                exercisesById = library.associateBy { it.id },
             )
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ProgressUiState())
 

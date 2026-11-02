@@ -60,13 +60,13 @@ class TestApp(
 
     fun workoutVm() = WorkoutViewModel(workout, repos.plans, repos.exercises, repos.sessions, healthImporter.importEnabled, scope)
 
-    fun historyVm() = HistoryViewModel(repos.sessions, repos.records, exporter, scope)
+    fun historyVm() = HistoryViewModel(repos.sessions, repos.records, repos.exercises, exporter, scope)
 
-    fun plansVm() = PlansViewModel(repos.plans, scope, clock)
+    fun plansVm() = PlansViewModel(repos.plans, repos.exercises, scope, clock)
 
     fun planEditorVm(planId: String?) = PlanEditorViewModel(planId, repos.plans, repos.exercises, scope, clock)
 
-    fun progressVm() = ProgressViewModel(repos.sessions, repos.records, healthImporter.bodyWeights, clock)
+    fun progressVm() = ProgressViewModel(repos.sessions, repos.records, repos.exercises, healthImporter.bodyWeights, clock)
 
     fun goalsVm() = GoalsViewModel(repos.goals, repos.sessions, repos.records, repos.exercises, healthImporter.bodyWeights, scope, clock)
 

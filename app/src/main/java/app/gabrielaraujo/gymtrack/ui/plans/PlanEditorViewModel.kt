@@ -19,7 +19,7 @@ import kotlinx.coroutines.launch
 data class PlanEditorUiState(
     /** Rascunho em edição (null enquanto carrega). */
     val plan: WorkoutPlan? = null,
-    val exercises: List<Exercise> = emptyList(),
+    val exercisesById: Map<String, Exercise> = emptyMap(),
 )
 
 /**
@@ -37,7 +37,9 @@ class PlanEditorViewModel(
 ) : ViewModel() {
     private val draft = MutableStateFlow<WorkoutPlan?>(null)
 
-    val state: StateFlow<PlanEditorUiState> = combine(draft, exercises.exercises) { plan, list -> PlanEditorUiState(plan, list) }
+    val state: StateFlow<PlanEditorUiState> = combine(draft, exercises.exercises) { plan, list ->
+        PlanEditorUiState(plan, list.associateBy { it.id })
+    }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), PlanEditorUiState())
 
     init {

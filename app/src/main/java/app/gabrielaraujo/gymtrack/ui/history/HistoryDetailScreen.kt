@@ -37,9 +37,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import app.gabrielaraujo.gymtrack.data.Exercise
 import app.gabrielaraujo.gymtrack.data.SessionExercise
 import app.gabrielaraujo.gymtrack.data.SetRecord
 import app.gabrielaraujo.gymtrack.data.WorkoutSession
+import app.gabrielaraujo.gymtrack.data.exerciseDisplayName
 import app.gabrielaraujo.gymtrack.domain.progression.sessionTotals
 import app.gabrielaraujo.gymtrack.session.withAddedSet
 import app.gabrielaraujo.gymtrack.ui.components.BtnVariant
@@ -58,6 +60,7 @@ fun HistoryDetailScreen(vm: HistoryViewModel, sessionId: String, onBack: () -> U
     val state by vm.state.collectAsStateWithLifecycle()
     if (!state.loaded) return
     val session = state.sessions.find { it.id == sessionId }
+    val byId = state.exercisesById
     var draft by remember(sessionId) { mutableStateOf<WorkoutSession?>(null) }
     var confirmDelete by remember { mutableStateOf(false) }
 
@@ -83,6 +86,7 @@ fun HistoryDetailScreen(vm: HistoryViewModel, sessionId: String, onBack: () -> U
         draft?.let { editing ->
             SessionEditor(
                 session = editing,
+                byId = byId,
                 onChange = { draft = it },
                 onCancel = { draft = null },
                 onSave = { vm.update(editing); draft = null },
@@ -120,7 +124,7 @@ fun HistoryDetailScreen(vm: HistoryViewModel, sessionId: String, onBack: () -> U
                         Spacer(Modifier.height(4.dp))
                         session.prsAchieved.forEach { id ->
                             val pr = state.records[id]
-                            Text("🏆 ${pr?.exerciseName ?: id}${if (pr != null) " · ${formatWeight(pr.weight)}kg × ${pr.reps}" else ""}", color = TC.Yellow400.copy(alpha = 0.9f), fontSize = 14.sp)
+                            Text("🏆 ${exerciseDisplayName(id, byId, pr?.exerciseName)}${if (pr != null) " · ${formatWeight(pr.weight)}kg × ${pr.reps}" else ""}", color = TC.Yellow400.copy(alpha = 0.9f), fontSize = 14.sp)
                         }
                     }
                 }
@@ -133,7 +137,7 @@ fun HistoryDetailScreen(vm: HistoryViewModel, sessionId: String, onBack: () -> U
                     Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(TC.Slate900).padding(16.dp)) {
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                             Column {
-                                Text(ex.name, color = TC.White, fontWeight = FontWeight.Bold)
+                                Text(exerciseDisplayName(ex.exerciseId, byId, ex.name), color = TC.White, fontWeight = FontWeight.Bold)
                                 if (ex.substitutedFrom != null) Text("Substituiu outro exercício", color = TC.Slate500, fontSize = 12.sp)
                             }
                             if (volume > 0) Text("${volume.roundToInt()} kg vol.", color = TC.Slate500, fontSize = 12.sp)
@@ -187,6 +191,7 @@ private fun MiniStat(label: String, value: String, modifier: Modifier = Modifier
 @Composable
 private fun SessionEditor(
     session: WorkoutSession,
+    byId: Map<String, Exercise>,
     onChange: (WorkoutSession) -> Unit,
     onCancel: () -> Unit,
     onSave: () -> Unit,
@@ -210,7 +215,7 @@ private fun SessionEditor(
             session.exercises.forEachIndexed { exIndex, ex ->
                 item(key = ex.id) {
                     Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(TC.Slate900).padding(16.dp)) {
-                        Text(ex.name, color = TC.White, fontWeight = FontWeight.Bold)
+                        Text(exerciseDisplayName(ex.exerciseId, byId, ex.name), color = TC.White, fontWeight = FontWeight.Bold)
                         Spacer(Modifier.height(8.dp))
                         ex.sets.forEachIndexed { setIndex, set ->
                             Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {

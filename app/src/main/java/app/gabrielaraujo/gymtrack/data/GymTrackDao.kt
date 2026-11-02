@@ -16,9 +16,6 @@ interface GymTrackDao {
     @Query("SELECT * FROM exercises WHERE deleted = 0")
     fun observeExercises(): Flow<List<Exercise>>
 
-    @Query("SELECT COUNT(*) FROM exercises")
-    suspend fun exerciseCount(): Int
-
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertExercises(exercises: List<Exercise>)
 

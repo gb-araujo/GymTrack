@@ -48,7 +48,7 @@ object AppViewModelProvider {
         }
         initializer {
             val c = container()
-            PlansViewModel(c.repositories.plans, c.appScope)
+            PlansViewModel(c.repositories.plans, c.repositories.exercises, c.appScope)
         }
         initializer {
             val c = container()
@@ -57,11 +57,11 @@ object AppViewModelProvider {
         }
         initializer {
             val c = container()
-            HistoryViewModel(c.repositories.sessions, c.repositories.records, c.healthConnect, c.appScope)
+            HistoryViewModel(c.repositories.sessions, c.repositories.records, c.repositories.exercises, c.healthConnect, c.appScope)
         }
         initializer {
             val c = container()
-            ProgressViewModel(c.repositories.sessions, c.repositories.records, c.healthImporter.bodyWeights)
+            ProgressViewModel(c.repositories.sessions, c.repositories.records, c.repositories.exercises, c.healthImporter.bodyWeights)
         }
         initializer {
             val c = container()

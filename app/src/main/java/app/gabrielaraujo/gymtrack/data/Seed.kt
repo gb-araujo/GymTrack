@@ -1,6 +1,10 @@
 package app.gabrielaraujo.gymtrack.data
 
-/** Biblioteca de exercícios embutida (portada de src/data/exercises.ts). */
+/**
+ * Biblioteca de exercícios embutida (portada de src/data/exercises.ts).
+ * O id é a chave que fichas, treinos e recordes guardam: nunca mude o id, só o nome.
+ * A ilustração de cada um fica em assets/exercises/<id>/ (ver scripts/fetch_exercise_images.py).
+ */
 val builtinExercises: List<Exercise> = listOf(
     // PEITO
     Exercise("supino_reto", "Supino Reto", "Peito", listOf("Tríceps", "Ombro Anterior"), "Barra", "Empurrar Horizontal", "Composto", "intermediate", "Deite no banco, segure a barra com pegada levemente mais larga que os ombros, desça até o peito e empurre para cima."),
@@ -11,7 +15,7 @@ val builtinExercises: List<Exercise> = listOf(
     Exercise("crucifixo_maquina", "Crucifixo na Máquina", "Peito", emptyList(), "Máquina", "Adução Horizontal", "Isolado", "beginner"),
     Exercise("peck_deck", "Peck Deck", "Peito", emptyList(), "Máquina", "Adução Horizontal", "Isolado", "beginner"),
     Exercise("flexao", "Flexão de Braço", "Peito", listOf("Tríceps", "Ombro Anterior"), "Peso Corporal", "Empurrar Horizontal", "Composto", "beginner"),
-    Exercise("mergulho", "Mergulho (Dips)", "Peito Inferior", listOf("Tríceps", "Ombro Anterior"), "Paralelas", "Empurrar Vertical", "Composto", "intermediate"),
+    Exercise("mergulho", "Mergulho nas Paralelas", "Peito Inferior", listOf("Tríceps", "Ombro Anterior"), "Paralelas", "Empurrar Vertical", "Composto", "intermediate"),
     // COSTAS
     Exercise("barra_fixa", "Barra Fixa", "Costas", listOf("Bíceps", "Ombro Posterior"), "Peso Corporal", "Puxar Vertical", "Composto", "intermediate"),
     Exercise("remada_curvada", "Remada Curvada", "Costas", listOf("Bíceps", "Lombar"), "Barra", "Puxar Horizontal", "Composto", "intermediate"),
@@ -25,13 +29,13 @@ val builtinExercises: List<Exercise> = listOf(
     // PERNA
     Exercise("agachamento", "Agachamento Livre", "Quadríceps", listOf("Glúteo", "Posteriores de Coxa", "Lombar"), "Barra", "Empurrar Vertical", "Composto", "advanced"),
     Exercise("leg_press", "Leg Press 45°", "Quadríceps", listOf("Glúteo", "Posteriores de Coxa"), "Máquina", "Empurrar Vertical", "Composto", "beginner"),
-    Exercise("extensao_joelho", "Extensão de Joelho", "Quadríceps", emptyList(), "Máquina", "Extensão de Joelho", "Isolado", "beginner"),
-    Exercise("flexao_joelho", "Flexão de Joelho", "Posteriores de Coxa", emptyList(), "Máquina", "Flexão de Joelho", "Isolado", "beginner"),
+    Exercise("extensao_joelho", "Cadeira Extensora", "Quadríceps", emptyList(), "Máquina", "Extensão de Joelho", "Isolado", "beginner"),
+    Exercise("flexao_joelho", "Mesa Flexora", "Posteriores de Coxa", emptyList(), "Máquina", "Flexão de Joelho", "Isolado", "beginner"),
     Exercise("stiff", "Stiff", "Posteriores de Coxa", listOf("Lombar", "Glúteo"), "Barra", "Dobradiça de Quadril", "Composto", "intermediate"),
     Exercise("afundo", "Afundo", "Quadríceps", listOf("Glúteo", "Posteriores de Coxa"), "Halteres", "Empurrar Unilateral", "Composto", "intermediate"),
     Exercise("elevacao_panturrilha", "Elevação de Panturrilha", "Panturrilha", emptyList(), "Máquina", "Extensão Plantar", "Isolado", "beginner"),
     Exercise("cadeira_adutora", "Cadeira Adutora", "Adutores", emptyList(), "Máquina", "Adução de Quadril", "Isolado", "beginner"),
-    Exercise("agachamento_hack", "Hack Squat", "Quadríceps", listOf("Glúteo"), "Máquina", "Empurrar Vertical", "Composto", "intermediate"),
+    Exercise("agachamento_hack", "Agachamento Hack", "Quadríceps", listOf("Glúteo"), "Máquina", "Empurrar Vertical", "Composto", "intermediate"),
     // OMBROS
     Exercise("desenvolvimento_barra", "Desenvolvimento com Barra", "Ombro", listOf("Tríceps"), "Barra", "Empurrar Vertical", "Composto", "intermediate"),
     Exercise("desenvolvimento_halteres", "Desenvolvimento com Halteres", "Ombro", listOf("Tríceps"), "Halteres", "Empurrar Vertical", "Composto", "intermediate"),
@@ -51,7 +55,7 @@ val builtinExercises: List<Exercise> = listOf(
     Exercise("triceps_frances", "Tríceps Francês", "Tríceps", emptyList(), "Halteres", "Extensão de Cotovelo", "Isolado", "beginner"),
     Exercise("triceps_maquina", "Tríceps na Máquina", "Tríceps", emptyList(), "Máquina", "Extensão de Cotovelo", "Isolado", "beginner"),
     // ABDÔMEN
-    Exercise("abdominal_crunch", "Abdominal Crunch", "Abdômen", emptyList(), "Peso Corporal", "Flexão de Tronco", "Isolado", "beginner"),
+    Exercise("abdominal_crunch", "Abdominal Supra", "Abdômen", emptyList(), "Peso Corporal", "Flexão de Tronco", "Isolado", "beginner"),
     Exercise("prancha", "Prancha", "Abdômen", listOf("Lombar"), "Peso Corporal", "Estabilização", "Isolado", "beginner"),
 )
 

@@ -36,6 +36,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.gabrielaraujo.gymtrack.domain.BodyWeightEntry
+import app.gabrielaraujo.gymtrack.data.exerciseDisplayName
 import app.gabrielaraujo.gymtrack.ui.GymTrackViewModel
 import app.gabrielaraujo.gymtrack.ui.components.LineChart
 import app.gabrielaraujo.gymtrack.ui.formatBodyWeight
@@ -58,6 +59,7 @@ fun ProgressScreen(vm: GymTrackViewModel) {
     var selectedExercise by remember { mutableStateOf<String?>(null) }
 
     val prs = state.personalRecords.values.sortedByDescending { it.date }
+    val byId = remember(state.exercises) { state.exercises.associateBy { it.id } }
 
     LazyColumn(
         Modifier.fillMaxWidth().statusBarsPadding().padding(horizontal = 16.dp),
@@ -97,7 +99,7 @@ fun ProgressScreen(vm: GymTrackViewModel) {
                             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                     Icon(Icons.Default.EmojiEvents, null, tint = TC.Yellow400, modifier = Modifier.size(14.dp))
-                                    Text(pr.exerciseName, color = TC.White, fontWeight = FontWeight.SemiBold)
+                                    Text(exerciseDisplayName(pr.exerciseId, byId, pr.exerciseName), color = TC.White, fontWeight = FontWeight.SemiBold)
                                 }
                                 Column(horizontalAlignment = Alignment.End) {
                                     Text(if (pr.weight > 0) "${formatWeight(pr.weight)} kg" else "Peso Corp.", color = TC.White, fontSize = 18.sp, fontWeight = FontWeight.Black)

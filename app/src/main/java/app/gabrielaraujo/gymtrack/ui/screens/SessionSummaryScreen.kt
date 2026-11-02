@@ -20,6 +20,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -28,6 +29,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import app.gabrielaraujo.gymtrack.data.exerciseDisplayName
 import app.gabrielaraujo.gymtrack.ui.GymTrackViewModel
 import app.gabrielaraujo.gymtrack.ui.components.GymTrackButton
 import app.gabrielaraujo.gymtrack.ui.formatDuration
@@ -41,6 +43,7 @@ fun SessionSummaryScreen(vm: GymTrackViewModel, onFinish: () -> Unit) {
     val state by vm.state.collectAsStateWithLifecycle()
     val session = state.activeSession?.session ?: return
     val prs = session.prsAchieved
+    val byId = remember(state.exercises) { state.exercises.associateBy { it.id } }
 
     Column(
         Modifier.fillMaxSize().background(TC.Background).verticalScroll(rememberScrollState()).padding(24.dp),
@@ -85,11 +88,10 @@ fun SessionSummaryScreen(vm: GymTrackViewModel, onFinish: () -> Unit) {
                 }
                 Spacer(Modifier.height(8.dp))
                 prs.forEach { id ->
-                    val ex = state.exercises.find { it.id == id }
                     val sessionEx = session.exercises.find { it.exerciseId == id }
                     val best = sessionEx?.sets?.filter { it.completed }?.maxByOrNull { it.weight }
                     val suffix = if (best != null && best.weight > 0) " · ${formatWeight(best.weight)}kg × ${best.reps}" else ""
-                    Text("🏆 ${ex?.name ?: id}$suffix", color = TC.Yellow400.copy(alpha = 0.9f), fontSize = 14.sp)
+                    Text("🏆 ${exerciseDisplayName(id, byId, sessionEx?.name)}$suffix", color = TC.Yellow400.copy(alpha = 0.9f), fontSize = 14.sp)
                 }
             }
         }
@@ -99,7 +101,7 @@ fun SessionSummaryScreen(vm: GymTrackViewModel, onFinish: () -> Unit) {
             Row(Modifier.fillMaxWidth().padding(vertical = 4.dp).clip(RoundedCornerShape(12.dp)).background(TC.Slate900).padding(horizontal = 16.dp, vertical = 12.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Icon(Icons.Default.CheckCircle, null, tint = TC.Emerald400, modifier = Modifier.size(14.dp))
-                    Text(ex.name, color = TC.White, fontSize = 14.sp)
+                    Text(exerciseDisplayName(ex.exerciseId, byId, ex.name), color = TC.White, fontSize = 14.sp)
                 }
                 Text("${ex.sets.count { it.completed }} séries", color = TC.Slate500, fontSize = 12.sp)
             }

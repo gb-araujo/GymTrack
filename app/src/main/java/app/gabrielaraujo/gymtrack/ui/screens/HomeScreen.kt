@@ -40,6 +40,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import app.gabrielaraujo.gymtrack.data.exerciseDisplayName
 import app.gabrielaraujo.gymtrack.ui.GymTrackViewModel
 import app.gabrielaraujo.gymtrack.ui.components.BtnVariant
 import app.gabrielaraujo.gymtrack.ui.components.SectionLabel
@@ -71,6 +72,7 @@ fun HomeScreen(
     val nextDay = plan?.days?.getOrNull(state.nextDayIndex)
     val lastSession = state.sessions.firstOrNull()
     val prs = state.personalRecords.values.take(3)
+    val byId = remember(state.exercises) { state.exercises.associateBy { it.id } }
     var showAccount by remember { mutableStateOf(false) }
     val signOutPending by vm.signOutPending.collectAsStateWithLifecycle()
     var showDayPicker by remember { mutableStateOf(false) }
@@ -190,7 +192,7 @@ fun HomeScreen(
                 GymTrackCard {
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                         Column {
-                            Text(pr.exerciseName, color = TC.White, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+                            Text(exerciseDisplayName(pr.exerciseId, byId, pr.exerciseName), color = TC.White, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
                             Text(timeAgo(pr.date), color = TC.Slate500, fontSize = 12.sp)
                         }
                         Column(horizontalAlignment = Alignment.End) {

@@ -40,6 +40,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.gabrielaraujo.gymtrack.data.Exercise
 import app.gabrielaraujo.gymtrack.ui.GymTrackViewModel
 import app.gabrielaraujo.gymtrack.data.getSuggestions
+import app.gabrielaraujo.gymtrack.ui.components.BtnVariant
+import app.gabrielaraujo.gymtrack.ui.components.GymTrackButton
 import app.gabrielaraujo.gymtrack.ui.theme.TC
 
 private val muscles = listOf("Todos", "Peito", "Costas", "Perna", "Ombro", "Bíceps", "Tríceps", "Abdômen")
@@ -103,6 +105,7 @@ fun ExerciseSubstituteDialog(vm: GymTrackViewModel, exerciseId: String, exercise
     val state by vm.state.collectAsStateWithLifecycle()
     val suggestions = getSuggestions(exerciseId, state.exercises)
     val target = state.exercises.find { it.id == exerciseId }
+    var showPicker by remember { mutableStateOf(false) }
 
     Dialog(onDismissRequest = onClose, properties = DialogProperties(usePlatformDefaultWidth = false)) {
         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.BottomCenter) {
@@ -141,8 +144,28 @@ fun ExerciseSubstituteDialog(vm: GymTrackViewModel, exerciseId: String, exercise
                         items(listOf(Unit)) { Text("Nenhuma sugestão disponível", color = TC.Slate500, modifier = Modifier.fillMaxWidth().padding(32.dp), textAlign = androidx.compose.ui.text.style.TextAlign.Center) }
                     }
                 }
+                GymTrackButton(
+                    "Escolher outro exercício",
+                    onClick = { showPicker = true },
+                    variant = BtnVariant.Ghost,
+                    leading = { Icon(Icons.Default.Search, null, modifier = Modifier.size(16.dp)) },
+                    modifier = Modifier.fillMaxWidth().padding(16.dp),
+                )
             }
         }
+    }
+
+    // Seletor completo, para quando nenhuma sugestão serve.
+    if (showPicker) {
+        ExercisePickerDialog(
+            vm,
+            onSelect = { id, _ ->
+                if (id != exerciseId) vm.substituteExercise(exerciseIndex, id)
+                showPicker = false
+                onClose()
+            },
+            onClose = { showPicker = false },
+        )
     }
 }
 

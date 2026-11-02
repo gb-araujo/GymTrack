@@ -13,13 +13,13 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
-        val app = application as GymTrackApplication
+        val c = (application as GymTrackApplication).container
         setContent {
             GymTrackTheme {
                 val vm: GymTrackViewModel = viewModel(
                     factory = GymTrackViewModel.factory(
-                        app.repository, app.authManager, app.syncEngine, app.syncScheduler,
-                        app.restTimerAlerts, app.healthConnect, app.healthConnect,
+                        c.repositories, c.authManager, c.syncEngine, c.syncScheduler,
+                        c.restTimerAlerts, c.healthConnect, c.healthConnect,
                     ),
                 )
                 GymTrackApp(vm)

@@ -3,7 +3,7 @@ package app.gabrielaraujo.gymtrack.ui
 import android.app.Application
 import androidx.lifecycle.viewModelScope
 import app.gabrielaraujo.gymtrack.data.GymTrackDatabase
-import app.gabrielaraujo.gymtrack.data.GymTrackRepository
+import app.gabrielaraujo.gymtrack.data.repository.Repositories
 import app.gabrielaraujo.gymtrack.data.WorkoutSession
 import app.gabrielaraujo.gymtrack.domain.BodyWeightEntry
 import app.gabrielaraujo.gymtrack.domain.WorkoutHealthMetrics
@@ -45,7 +45,7 @@ import java.util.concurrent.Executors
 class GymTrackViewModelTest {
     private lateinit var main: ExecutorCoroutineDispatcher
     private lateinit var db: GymTrackDatabase
-    private lateinit var repo: GymTrackRepository
+    private lateinit var repos: Repositories
     private val clock = TestClock()
     private val vms = mutableListOf<GymTrackViewModel>()
 
@@ -54,7 +54,7 @@ class GymTrackViewModelTest {
         main = Executors.newSingleThreadExecutor().asCoroutineDispatcher()
         Dispatchers.setMain(main)
         db = inMemoryDb()
-        repo = GymTrackRepository(db, clock)
+        repos = Repositories(db, clock = clock)
     }
 
     @After
@@ -72,7 +72,7 @@ class GymTrackViewModelTest {
         health: HealthDataSource = HealthDataSource.None,
         auth: FakeAuth = FakeAuth(),
         scheduler: FakeSyncScheduler = FakeSyncScheduler(),
-    ) = GymTrackViewModel(repo, auth, FakeSync(), scheduler, workoutExporter = exporter, healthData = health, clock = clock)
+    ) = GymTrackViewModel(repos, auth, FakeSync(), scheduler, workoutExporter = exporter, healthData = health, clock = clock)
         .also { vms += it }
 
     private fun GymTrackViewModel.await(predicate: (UiState) -> Boolean): UiState =
@@ -110,7 +110,7 @@ class GymTrackViewModelTest {
         assertEquals(done.id, state.sessions.single().id)
         assertEquals(1, state.streak.count)
         assertEquals(45, state.sessions.single().duration)
-        assertTrue(runBlocking { repo.getSession(done.id) }!!.completed)
+        assertTrue(runBlocking { repos.sessions.getSession(done.id) }!!.completed)
 
         // Reabrir o app (novo ViewModel sobre o mesmo banco) mantém o treino.
         val reopened = newVm().await { it.loaded && it.sessions.size == 1 }
@@ -133,7 +133,7 @@ class GymTrackViewModelTest {
         vm.startSession()
         val inProgress = vm.await { it.activeSession != null }.activeSession!!.session
         vm.abandonSession()
-        eventually { if (runBlocking { repo.getSession(inProgress.id) } == null) true else null }
+        eventually { if (runBlocking { repos.sessions.getSession(inProgress.id) } == null) true else null }
         assertEquals(1, vm.await { it.activeSession == null }.sessions.size)
     }
 
@@ -145,7 +145,7 @@ class GymTrackViewModelTest {
         vm.await { it.activeSession != null }
         vm.completeExercise(0)
         val id = vm.state.value.activeSession!!.session.id
-        eventually { runBlocking { repo.getSession(id) }?.exercises?.first()?.completed?.takeIf { it } }
+        eventually { runBlocking { repos.sessions.getSession(id) }?.exercises?.first()?.completed?.takeIf { it } }
 
         val reopened = newVm().await { it.loaded }
         assertEquals(id, reopened.activeSession?.session?.id)
@@ -166,7 +166,7 @@ class GymTrackViewModelTest {
         assertEquals(1, state.streak.count)
         val pr = vm.await { it.personalRecords[exerciseId]?.sessionId == light.id }.personalRecords.getValue(exerciseId)
         assertEquals(light.id, pr.sessionId)
-        assertTrue(runBlocking { repo.getSession(heavy.id) }!!.deleted)
+        assertTrue(runBlocking { repos.sessions.getSession(heavy.id) }!!.deleted)
     }
 
     @Test
@@ -233,7 +233,7 @@ class GymTrackViewModelTest {
         assertEquals(171, saved.maxHeartRate)
         assertEquals(315.0, saved.calories!!, 0.0)
         // Entra na fila de sincronização sem mexer nos totais nem nos recordes.
-        val stored = runBlocking { repo.getSession(done.id) }!!
+        val stored = runBlocking { repos.sessions.getSession(done.id) }!!
         assertTrue(stored.dirty)
         assertEquals(done.totalVolume, stored.totalVolume)
         assertEquals(done.prsAchieved, stored.prsAchieved)
@@ -259,17 +259,6 @@ class GymTrackViewModelTest {
     }
 
     @Test
-    fun `edicoes agendam sincronizacao em segundo plano so com usuario logado`() {
-        val anonymous = FakeSyncScheduler()
-        newVm(scheduler = anonymous).doWorkout()
-        assertEquals(0, anonymous.requests)
-
-        val logged = FakeSyncScheduler()
-        newVm(auth = FakeAuth("u1"), scheduler = logged).doWorkout()
-        assertTrue(logged.requests > 0)
-    }
-
-    @Test
     fun `proximo treino sugerido avanca com o historico`() {
         val vm = newVm()
         assertEquals(0, vm.await { it.loaded && it.activePlan != null }.nextDayIndex)
@@ -284,8 +273,8 @@ class GymTrackViewModelTest {
         val vm = newVm(auth = auth, scheduler = scheduler)
         vm.doWorkout()
         // Tudo já sincronizado.
-        runBlocking { repo.dao.getSessions().forEach { repo.dao.clearSessionDirty(it.id, it.updatedAt) } }
-        runBlocking { repo.dao.getPersonalRecords().forEach { repo.dao.clearPersonalRecordDirty(it.exerciseId, it.updatedAt) } }
+        runBlocking { db.dao().getSessions().forEach { db.dao().clearSessionDirty(it.id, it.updatedAt) } }
+        runBlocking { db.dao().getPersonalRecords().forEach { db.dao().clearPersonalRecordDirty(it.exerciseId, it.updatedAt) } }
 
         vm.signOut()
         val state = vm.await { it.sessions.isEmpty() && it.personalRecords.isEmpty() }

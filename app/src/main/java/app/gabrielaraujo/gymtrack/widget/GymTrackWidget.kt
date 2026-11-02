@@ -25,10 +25,10 @@ import kotlinx.coroutines.launch
 class GymTrackWidget : AppWidgetProvider() {
     override fun onUpdate(context: Context, manager: AppWidgetManager, appWidgetIds: IntArray) {
         val pending = goAsync()
-        val app = context.applicationContext as GymTrackApplication
+        val repos = (context.applicationContext as GymTrackApplication).container.repositories
         CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {
             try {
-                WidgetUpdater.update(context, app.repository.completedSessionsSnapshot(), app.repository.plansSnapshot())
+                WidgetUpdater.update(context, repos.sessions.completedSessionsSnapshot(), repos.plans.plansSnapshot())
             } finally {
                 pending.finish()
             }

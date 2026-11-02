@@ -58,9 +58,9 @@ class WorkManagerSyncScheduler(context: Context) : SyncScheduler {
 /** Uma rodada de sincronização. Interrompê-la no meio é seguro: envio e recebimento são idempotentes. */
 class SyncWorker(context: Context, params: WorkerParameters) : CoroutineWorker(context, params) {
     override suspend fun doWork(): Result {
-        val app = applicationContext as GymTrackApplication
-        val uid = app.authManager.currentUid ?: return Result.success()
-        return when (app.syncEngine.sync(uid)) {
+        val container = (applicationContext as GymTrackApplication).container
+        val uid = container.authManager.currentUid ?: return Result.success()
+        return when (container.syncEngine.sync(uid)) {
             SyncResult.Success -> Result.success()
             // As pendências continuam marcadas no banco; a próxima edição ou abertura do app agenda de novo.
             is SyncResult.Failure -> if (runAttemptCount < MAX_ATTEMPTS) Result.retry() else Result.failure()

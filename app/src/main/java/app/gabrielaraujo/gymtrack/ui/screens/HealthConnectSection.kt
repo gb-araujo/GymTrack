@@ -58,7 +58,7 @@ import kotlinx.coroutines.launch
 fun HealthConnectSection(onImportEnabled: () -> Unit) {
     val context = LocalContext.current
     val app = context.applicationContext as GymTrackApplication
-    val health = app.healthConnect
+    val health = app.container.healthConnect
     val exportOn by health.exportEnabled.collectAsStateWithLifecycle()
     val importOn by health.importEnabled.collectAsStateWithLifecycle()
     val exportStatus by health.exportStatus.collectAsStateWithLifecycle()
@@ -135,7 +135,7 @@ fun HealthConnectSection(onImportEnabled: () -> Unit) {
                 "Enviar treinos anteriores",
                 onClick = {
                     scope.launch {
-                        val sent = health.exportAll(app.repository.completedSessionsSnapshot())
+                        val sent = health.exportAll(app.container.repositories.sessions.completedSessionsSnapshot())
                         val error = health.exportStatus.value?.error
                         toast(context, if (sent == 0 && error != null) "Falha ao enviar: $error" else "$sent treinos enviados ao Health Connect.")
                     }

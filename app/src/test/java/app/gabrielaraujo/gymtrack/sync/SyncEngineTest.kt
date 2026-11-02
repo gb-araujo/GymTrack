@@ -6,12 +6,12 @@ import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import app.gabrielaraujo.gymtrack.data.Goal
 import app.gabrielaraujo.gymtrack.data.GymTrackDatabase
-import app.gabrielaraujo.gymtrack.data.GymTrackRepository
 import app.gabrielaraujo.gymtrack.data.SAMPLE_PLAN_ID
 import app.gabrielaraujo.gymtrack.data.SessionExercise
 import app.gabrielaraujo.gymtrack.data.SetRecord
 import app.gabrielaraujo.gymtrack.data.WorkoutSession
 import app.gabrielaraujo.gymtrack.data.newId
+import app.gabrielaraujo.gymtrack.data.repository.Repositories
 import app.gabrielaraujo.gymtrack.domain.WorkoutHealthMetrics
 import app.gabrielaraujo.gymtrack.testing.FakeRemoteStore
 import app.gabrielaraujo.gymtrack.testing.TestClock
@@ -45,13 +45,14 @@ class SyncEngineTest {
 
     private inner class Device(start: Long = BASE, val db: GymTrackDatabase = inMemoryDb()) {
         val clock = TestClock(start)
-        val repo = GymTrackRepository(db, clock)
-        val engine = SyncEngine(db, remote, recomputeDerived = { uid -> repo.recomputeRecords(uid) }, clock = clock)
+        var uid: String? = U
+        val repos = Repositories(db, currentUid = { uid }, clock = clock)
+        val engine = SyncEngine(db, remote, recomputeDerived = { uid -> repos.records.recompute(uid) }, clock = clock)
         val dao = db.dao()
 
         init {
             opened += db
-            runBlocking { repo.seedIfEmpty() }
+            runBlocking { repos.userData.seedIfEmpty() }
         }
 
         fun goal(id: String) = runBlocking { dao.getGoal(id) }
@@ -80,7 +81,7 @@ class SyncEngineTest {
     fun `envio bem-sucedido limpa a pendencia e chega ao outro aparelho`() = runBlocking {
         val a = Device()
         val goal = newGoal("Meta", a.clock)
-        a.repo.saveGoal(goal, U)
+        a.repos.goals.saveGoal(goal)
 
         assertEquals(SyncResult.Success, a.engine.onLogin(U))
         assertFalse(a.goal(goal.id)!!.dirty)
@@ -97,7 +98,7 @@ class SyncEngineTest {
     fun `sem conexao a pendencia continua e sobe quando a rede volta`() = runBlocking {
         val a = Device()
         val goal = newGoal("Meta", a.clock)
-        a.repo.saveGoal(goal, U)
+        a.repos.goals.saveGoal(goal)
         remote.offline = true
 
         assertTrue(a.engine.onLogin(U) is SyncResult.Failure)
@@ -121,7 +122,7 @@ class SyncEngineTest {
 
         val first = Device(db = open())
         val goal = newGoal("Antes de fechar", first.clock)
-        first.repo.saveGoal(goal, U)
+        first.repos.goals.saveGoal(goal)
         first.db.close() // processo encerrado sem sincronizar
 
         val reopened = Device(db = open())
@@ -137,7 +138,7 @@ class SyncEngineTest {
     fun `reenvio apos resposta perdida nao duplica`() = runBlocking {
         val a = Device()
         val goal = newGoal("Meta", a.clock)
-        a.repo.saveGoal(goal, U)
+        a.repos.goals.saveGoal(goal)
         // O envio chega ao servidor, mas a resposta se perde e a conexão cai antes do pull (que confirmaria o envio).
         remote.loseNextPushResponse = true
         remote.onChangesFetched = { collection -> if (collection == "goals") throw IOException("conexão caiu") }
@@ -159,7 +160,7 @@ class SyncEngineTest {
     fun `envio confirmado pelo pull da mesma rodada limpa a pendencia`() = runBlocking {
         val a = Device()
         val goal = newGoal("Meta", a.clock)
-        a.repo.saveGoal(goal, U)
+        a.repos.goals.saveGoal(goal)
         remote.loseNextPushResponse = true
 
         // A resposta do envio se perdeu, mas o pull trouxe a mesma versão: o registro já está na nuvem.
@@ -174,7 +175,7 @@ class SyncEngineTest {
         a.engine.onLogin(U)
         val sample = a.dao.getPlan(SAMPLE_PLAN_ID)!!
         a.clock.advanceMinutes(10)
-        a.repo.savePlan(sample.copy(name = "Minha ficha"), U)
+        a.repos.plans.savePlan(sample.copy(name = "Minha ficha"))
         a.engine.sync(U)
 
         // Instalação nova, mais tarde: semeia a ficha exemplo de fábrica e entra na mesma conta.
@@ -191,15 +192,15 @@ class SyncEngineTest {
         val a = Device()
         val b = Device()
         val goal = newGoal("Meta", a.clock)
-        a.repo.saveGoal(goal, U)
+        a.repos.goals.saveGoal(goal)
         a.engine.onLogin(U)
         b.engine.onLogin(U)
 
         // A edita primeiro (offline); B edita depois e sincroniza antes.
         a.clock.now = BASE + 1_000
-        a.repo.saveGoal(a.goal(goal.id)!!.copy(title = "Editada em A"), U)
+        a.repos.goals.saveGoal(a.goal(goal.id)!!.copy(title = "Editada em A"))
         b.clock.now = BASE + 2_000
-        b.repo.saveGoal(b.goal(goal.id)!!.copy(title = "Editada em B"), U)
+        b.repos.goals.saveGoal(b.goal(goal.id)!!.copy(title = "Editada em B"))
         b.engine.sync(U)
 
         // O envio de A é recusado (mais antigo) e A recebe a versão de B.
@@ -214,14 +215,14 @@ class SyncEngineTest {
         val a = Device()
         val b = Device()
         val goal = newGoal("Meta", a.clock)
-        a.repo.saveGoal(goal, U)
+        a.repos.goals.saveGoal(goal)
         a.engine.onLogin(U)
         b.engine.onLogin(U)
 
         a.clock.now = BASE + 1_000
-        a.repo.saveGoal(a.goal(goal.id)!!.copy(title = "Editada em A"), U)
+        a.repos.goals.saveGoal(a.goal(goal.id)!!.copy(title = "Editada em A"))
         b.clock.now = BASE + 2_000
-        b.repo.saveGoal(b.goal(goal.id)!!.copy(title = "Editada em B"), U)
+        b.repos.goals.saveGoal(b.goal(goal.id)!!.copy(title = "Editada em B"))
         a.engine.sync(U)
         b.engine.sync(U)
         a.engine.sync(U)
@@ -236,15 +237,15 @@ class SyncEngineTest {
         val a = Device()
         val b = Device()
         val s = session(a.clock, weight = 100.0)
-        a.repo.saveSessionInProgress(s, U)
-        a.repo.completeSession(s, U)
+        a.repos.sessions.saveSessionInProgress(s)
+        a.repos.sessions.completeSession(s)
         a.engine.onLogin(U)
         b.engine.onLogin(U)
         assertEquals(1, b.dao.getCompletedSessions().size)
         assertEquals(100.0, b.dao.getPersonalRecord("supino_reto")!!.weight, 0.0)
 
         a.clock.advanceMinutes(10)
-        a.repo.deleteCompletedSession(s.id, U)
+        a.repos.sessions.deleteCompletedSession(s.id)
         a.engine.sync(U)
         b.engine.sync(U)
 
@@ -258,8 +259,8 @@ class SyncEngineTest {
         val a = Device()
         a.engine.onLogin(U)
         val goal = newGoal("Meta", a.clock)
-        a.repo.saveGoal(goal, U)
-        a.repo.savePlan(a.dao.getPlan(SAMPLE_PLAN_ID)!!.copy(name = "Renomeada"), U)
+        a.repos.goals.saveGoal(goal)
+        a.repos.plans.savePlan(a.dao.getPlan(SAMPLE_PLAN_ID)!!.copy(name = "Renomeada"))
         remote.failingCollections += "goals"
 
         assertTrue(a.engine.sync(U) is SyncResult.Failure)
@@ -275,7 +276,7 @@ class SyncEngineTest {
     fun `pull interrompido nao avanca o cursor e recupera na proxima vez`() = runBlocking {
         val a = Device()
         val goal = newGoal("Meta", a.clock)
-        a.repo.saveGoal(goal, U)
+        a.repos.goals.saveGoal(goal)
         a.engine.onLogin(U)
 
         val b = Device()
@@ -285,7 +286,7 @@ class SyncEngineTest {
 
         // "Reinício": outro motor sobre o mesmo banco, com a rede de volta.
         remote.onChangesFetched = {}
-        val restarted = SyncEngine(b.db, remote, recomputeDerived = { uid -> b.repo.recomputeRecords(uid) }, clock = b.clock)
+        val restarted = SyncEngine(b.db, remote, recomputeDerived = { uid -> b.repos.records.recompute(uid) }, clock = b.clock)
         assertEquals(SyncResult.Success, restarted.sync(U))
         assertEquals("Meta", b.goal(goal.id)!!.title)
     }
@@ -294,7 +295,7 @@ class SyncEngineTest {
     fun `duas sincronizacoes simultaneas nao duplicam nem perdem pendencias`() = runBlocking {
         val a = Device()
         val goals = List(20) { newGoal("Meta $it", a.clock) }
-        goals.forEach { a.repo.saveGoal(it, U) }
+        goals.forEach { a.repos.goals.saveGoal(it) }
 
         val results = withContext(Dispatchers.Default) {
             listOf(async { a.engine.onLogin(U) }, async { a.engine.sync(U) }).awaitAll()
@@ -310,18 +311,18 @@ class SyncEngineTest {
         val a = Device()
         val b = Device()
         val goal = newGoal("Meta", a.clock)
-        a.repo.saveGoal(goal, U)
+        a.repos.goals.saveGoal(goal)
         a.engine.onLogin(U)
         b.engine.onLogin(U)
 
         b.clock.now = BASE + 1_000
-        b.repo.saveGoal(b.goal(goal.id)!!.copy(title = "Remota"), U)
+        b.repos.goals.saveGoal(b.goal(goal.id)!!.copy(title = "Remota"))
         b.engine.sync(U)
 
         // O usuário edita em A depois de o pull buscar a versão remota e antes de aplicá-la.
         a.clock.now = BASE + 2_000
         remote.onChangesFetched = { collection ->
-            if (collection == "goals") a.repo.saveGoal(a.goal(goal.id)!!.copy(title = "Local"), U)
+            if (collection == "goals") a.repos.goals.saveGoal(a.goal(goal.id)!!.copy(title = "Local"))
         }
         a.engine.sync(U)
         remote.onChangesFetched = {}
@@ -340,13 +341,13 @@ class SyncEngineTest {
         b.engine.onLogin(U)
 
         val heavy = session(a.clock, weight = 100.0)
-        a.repo.completeSession(heavy, U)
+        a.repos.sessions.completeSession(heavy)
         a.engine.sync(U)
 
         // B treina mais tarde, mais leve, sem ter recebido o treino de A: localmente o recorde é 90.
         b.clock.now = a.clock.now + 3_600_000
         val light = session(b.clock, weight = 90.0)
-        b.repo.completeSession(light, U)
+        b.repos.sessions.completeSession(light)
         assertEquals(90.0, b.dao.getPersonalRecord("supino_reto")!!.weight, 0.0)
 
         b.engine.sync(U)
@@ -365,17 +366,17 @@ class SyncEngineTest {
         val a = Device()
         val b = Device()
         val s = session(a.clock, weight = 60.0)
-        a.repo.completeSession(s, U)
+        a.repos.sessions.completeSession(s)
         a.engine.onLogin(U)
         b.engine.onLogin(U)
 
         // B corrige as séries do treino e sincroniza; A (desatualizado) recebe a frequência cardíaca depois.
         b.clock.now = a.clock.now + 600_000
         val edited = b.dao.getSession(s.id)!!.let { it.copy(exercises = it.exercises.map { ex -> ex.copy(sets = ex.sets.map { set -> set.copy(weight = 65.0) }) }) }
-        b.repo.updateCompletedSession(edited, U)
+        b.repos.sessions.updateCompletedSession(edited)
         b.engine.sync(U)
         a.clock.now = b.clock.now + 600_000
-        a.repo.updateSessionHealthMetrics(s.id, WorkoutHealthMetrics(avgHeartRate = 140), U)
+        a.repos.sessions.updateSessionHealthMetrics(s.id, WorkoutHealthMetrics(avgHeartRate = 140))
 
         a.engine.sync(U)
         b.engine.sync(U)
@@ -390,7 +391,8 @@ class SyncEngineTest {
     fun `pendencias de outra conta nunca sobem para a conta logada`() = runBlocking {
         val a = Device()
         val goal = newGoal("De outra conta", a.clock)
-        a.repo.saveGoal(goal.copy(ownerId = "outra"), uid = null)
+        a.uid = null
+        a.repos.goals.saveGoal(goal.copy(ownerId = "outra"))
         assertTrue(a.goal(goal.id)!!.dirty)
 
         a.engine.onLogin(U)

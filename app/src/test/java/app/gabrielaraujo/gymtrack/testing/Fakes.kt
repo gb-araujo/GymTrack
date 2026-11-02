@@ -12,6 +12,8 @@ import app.gabrielaraujo.gymtrack.domain.BodyWeightEntry
 import app.gabrielaraujo.gymtrack.domain.WorkoutHealthMetrics
 import app.gabrielaraujo.gymtrack.health.HealthDataSource
 import app.gabrielaraujo.gymtrack.health.WorkoutExporter
+import app.gabrielaraujo.gymtrack.session.RestState
+import app.gabrielaraujo.gymtrack.session.RestTimerStore
 import app.gabrielaraujo.gymtrack.sync.CloudSync
 import app.gabrielaraujo.gymtrack.sync.SyncResult
 import app.gabrielaraujo.gymtrack.sync.SyncScheduler
@@ -27,11 +29,14 @@ class FakeAuth(uid: String? = null) : AuthGateway {
     override fun signOut() { user.value = null }
 }
 
+/** Sincronização que não fala com a nuvem: só conta as chamadas e devolve [result]. */
 class FakeSync : CloudSync {
     override val status: StateFlow<SyncStatus> = MutableStateFlow(SyncStatus.Idle)
-    var syncs = 0
-    override suspend fun onLogin(uid: String): SyncResult { syncs++; return SyncResult.Success }
-    override suspend fun sync(uid: String): SyncResult { syncs++; return SyncResult.Success }
+    @Volatile var result: SyncResult = SyncResult.Success
+    @Volatile var syncs = 0
+    @Volatile var logins = 0
+    override suspend fun onLogin(uid: String): SyncResult { logins++; return result }
+    override suspend fun sync(uid: String): SyncResult { syncs++; return result }
     override fun reset() = Unit
     override suspend fun runExclusive(block: suspend () -> Unit) = block()
 }
@@ -61,6 +66,14 @@ class FakeHealthData(
     override suspend fun canRead() = importEnabled.value
     override suspend fun workoutMetrics(startTime: Long, endTime: Long) = metrics
     override suspend fun bodyWeights(since: Long) = weights.filter { it.time >= since }
+}
+
+/** Descanso guardado em memória (sobrevive a um "novo processo" dentro do mesmo teste). */
+class InMemoryRestTimerStore : RestTimerStore {
+    @Volatile private var rest: RestState? = null
+    override fun save(rest: RestState) { this.rest = rest }
+    override fun load(): RestState? = rest
+    override fun clear() { rest = null }
 }
 
 /** Relógio controlável, começando perto de "agora" para a ofensiva (que usa a data de hoje). */

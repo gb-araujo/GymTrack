@@ -323,6 +323,16 @@ private fun AccountDialog(vm: GymTrackViewModel, onClose: () -> Unit) {
                     modifier = Modifier.fillMaxWidth(),
                 )
                 Spacer(Modifier.height(8.dp))
+                GymTrackButton(
+                    "Reenviar tudo para a nuvem",
+                    onClick = {
+                        vm.forceFullResync()
+                        Toast.makeText(context, "Reenviando todos os dados…", Toast.LENGTH_SHORT).show()
+                    },
+                    variant = BtnVariant.Ghost,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                Spacer(Modifier.height(8.dp))
                 GymTrackButton("Sair", onClick = { vm.signOut(); onClose() }, variant = BtnVariant.Ghost, modifier = Modifier.fillMaxWidth())
             } else {
                 Text("Entre com o Google para sincronizar seus treinos na nuvem e acessá-los em outros dispositivos.", color = TC.Slate400, fontSize = 14.sp)

@@ -33,6 +33,15 @@ class GymTrackRepository(
         if (dao.planCount() == 0) dao.upsertPlan(buildSamplePlan(clock()))
     }
 
+    /** Marca tudo que é do usuário como pendente, para reenviar mesmo o que já estava (supostamente) sincronizado. */
+    suspend fun forceFullResync(uid: String) {
+        dao.markAllPlansDirty(uid)
+        dao.markAllSessionsDirty(uid)
+        dao.markAllPersonalRecordsDirty(uid)
+        dao.markAllGoalsDirty(uid)
+        dao.markAllExercisesDirty(uid)
+    }
+
     // ---------------- Fichas ----------------
 
     suspend fun plansSnapshot(): List<WorkoutPlan> = dao.getPlans()

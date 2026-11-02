@@ -15,12 +15,16 @@ import com.google.firebase.firestore.Query
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.TimeoutCancellationException
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.tasks.await
+import kotlinx.coroutines.withTimeout
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.json.Json
 import java.util.Date
@@ -68,6 +72,9 @@ class SyncEngine(
         _status.value = try {
             block()
             SyncStatus.Synced(clock())
+        } catch (e: TimeoutCancellationException) {
+            // Timeout de rede, não cancelamento real do job: reporta como erro em vez de ficar preso "Sincronizando…".
+            SyncStatus.Error("Tempo esgotado ao sincronizar.", clock())
         } catch (e: CancellationException) {
             _status.value = SyncStatus.Idle
             throw e
@@ -100,26 +107,33 @@ class SyncEngine(
         }
     }
 
-    private suspend fun pushDirty(uid: String) {
-        push(uid, "plans", WorkoutPlan.serializer(), dao.getDirtyPlans(), { it.id }) { dao.clearPlanDirty(it.id, it.updatedAt) }
-        push(uid, "sessions", WorkoutSession.serializer(), dao.getDirtySessions(), { it.id }) { dao.clearSessionDirty(it.id, it.updatedAt) }
-        push(uid, "prs", PersonalRecord.serializer(), dao.getDirtyPersonalRecords(), { it.exerciseId }) {
-            dao.clearPersonalRecordDirty(it.exerciseId, it.updatedAt)
+    /** As 5 coleções são independentes: roda em paralelo para não somar os round-trips de rede. */
+    private suspend fun pushDirty(uid: String) = coroutineScope {
+        launch { push(uid, "plans", WorkoutPlan.serializer(), dao.getDirtyPlans(), { it.id }) { dao.clearPlanDirty(it.id, it.updatedAt) } }
+        launch { push(uid, "sessions", WorkoutSession.serializer(), dao.getDirtySessions(), { it.id }) { dao.clearSessionDirty(it.id, it.updatedAt) } }
+        launch {
+            push(uid, "prs", PersonalRecord.serializer(), dao.getDirtyPersonalRecords(), { it.exerciseId }) {
+                dao.clearPersonalRecordDirty(it.exerciseId, it.updatedAt)
+            }
         }
-        push(uid, "goals", Goal.serializer(), dao.getDirtyGoals(), { it.id }) { dao.clearGoalDirty(it.id, it.updatedAt) }
-        push(uid, "exercises", Exercise.serializer(), dao.getDirtyExercises().filter { it.isCustom }, { it.id }) {
-            dao.clearExerciseDirty(it.id, it.updatedAt)
+        launch { push(uid, "goals", Goal.serializer(), dao.getDirtyGoals(), { it.id }) { dao.clearGoalDirty(it.id, it.updatedAt) } }
+        launch {
+            push(uid, "exercises", Exercise.serializer(), dao.getDirtyExercises().filter { it.isCustom }, { it.id }) {
+                dao.clearExerciseDirty(it.id, it.updatedAt)
+            }
         }
     }
 
-    private suspend fun pull(uid: String) {
-        pull(uid, "plans", WorkoutPlan.serializer(), { it.id }, { dao.getPlan(it) }) { dao.upsertPlan(it.copy(dirty = false)) }
-        pull(uid, "sessions", WorkoutSession.serializer(), { it.id }, { dao.getSession(it) }) { dao.upsertSession(it.copy(dirty = false)) }
-        pull(uid, "prs", PersonalRecord.serializer(), { it.exerciseId }, { dao.getPersonalRecord(it) }) {
-            dao.upsertPersonalRecord(it.copy(dirty = false))
+    private suspend fun pull(uid: String) = coroutineScope {
+        launch { pull(uid, "plans", WorkoutPlan.serializer(), { it.id }, { dao.getPlan(it) }) { dao.upsertPlan(it.copy(dirty = false)) } }
+        launch { pull(uid, "sessions", WorkoutSession.serializer(), { it.id }, { dao.getSession(it) }) { dao.upsertSession(it.copy(dirty = false)) } }
+        launch {
+            pull(uid, "prs", PersonalRecord.serializer(), { it.exerciseId }, { dao.getPersonalRecord(it) }) {
+                dao.upsertPersonalRecord(it.copy(dirty = false))
+            }
         }
-        pull(uid, "goals", Goal.serializer(), { it.id }, { dao.getGoal(it) }) { dao.upsertGoal(it.copy(dirty = false)) }
-        pull(uid, "exercises", Exercise.serializer(), { it.id }, { dao.getExercise(it) }) { dao.upsertExercise(it.copy(dirty = false)) }
+        launch { pull(uid, "goals", Goal.serializer(), { it.id }, { dao.getGoal(it) }) { dao.upsertGoal(it.copy(dirty = false)) } }
+        launch { pull(uid, "exercises", Exercise.serializer(), { it.id }, { dao.getExercise(it) }) { dao.upsertExercise(it.copy(dirty = false)) } }
     }
 
     // ---------------- helpers genéricos ----------------
@@ -148,7 +162,7 @@ class SyncEngine(
                     ),
                 )
             }
-            batch.commit().await()
+            withTimeout(SYNC_TIMEOUT_MS) { batch.commit().await() }
             // Só limpa o dirty de quem não mudou durante o envio.
             chunk.forEach { clearDirty(it) }
         }
@@ -167,7 +181,7 @@ class SyncEngine(
         val cursor = dao.getSyncCursor(cursorKey)
         val col = db.collection("users").document(uid).collection(name)
         val query: Query = if (cursor == null) col else col.whereGreaterThan("serverUpdatedAt", Timestamp(Date(cursor)))
-        val snap = query.get().await()
+        val snap = withTimeout(SYNC_TIMEOUT_MS) { query.get().await() }
 
         var maxServer = cursor ?: 0L
         for (doc in snap.documents) {
@@ -185,5 +199,8 @@ class SyncEngine(
     private companion object {
         /** Limite do Firestore é 500 operações por lote. */
         const val BATCH_LIMIT = 400
+
+        /** Evita que uma rede ruim deixe o status preso em "Sincronizando…" por minutos. */
+        const val SYNC_TIMEOUT_MS = 15_000L
     }
 }

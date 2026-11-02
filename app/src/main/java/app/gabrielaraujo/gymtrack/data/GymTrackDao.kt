@@ -38,6 +38,9 @@ interface GymTrackDao {
     @Query("UPDATE exercises SET dirty = 0 WHERE id = :id AND updatedAt = :updatedAt")
     suspend fun clearExerciseDirty(id: String, updatedAt: Long)
 
+    @Query("UPDATE exercises SET dirty = 1 WHERE ownerId = :uid AND isCustom = 1")
+    suspend fun markAllExercisesDirty(uid: String)
+
     // Plans
     @Query("SELECT * FROM workout_plans")
     suspend fun getPlans(): List<WorkoutPlan>
@@ -62,6 +65,9 @@ interface GymTrackDao {
 
     @Query("UPDATE workout_plans SET dirty = 0 WHERE id = :id AND updatedAt = :updatedAt")
     suspend fun clearPlanDirty(id: String, updatedAt: Long)
+
+    @Query("UPDATE workout_plans SET dirty = 1 WHERE ownerId = :uid")
+    suspend fun markAllPlansDirty(uid: String)
 
     // Sessions
     @Query("SELECT * FROM workout_sessions")
@@ -104,6 +110,9 @@ interface GymTrackDao {
     @Query("UPDATE workout_sessions SET dirty = 0 WHERE id = :id AND updatedAt = :updatedAt")
     suspend fun clearSessionDirty(id: String, updatedAt: Long)
 
+    @Query("UPDATE workout_sessions SET dirty = 1 WHERE ownerId = :uid AND (completed = 1 OR deleted = 1)")
+    suspend fun markAllSessionsDirty(uid: String)
+
     // Personal records
     @Query("SELECT * FROM personal_records")
     suspend fun getPersonalRecords(): List<PersonalRecord>
@@ -126,6 +135,9 @@ interface GymTrackDao {
     @Query("UPDATE personal_records SET dirty = 0 WHERE exerciseId = :id AND updatedAt = :updatedAt")
     suspend fun clearPersonalRecordDirty(id: String, updatedAt: Long)
 
+    @Query("UPDATE personal_records SET dirty = 1 WHERE ownerId = :uid")
+    suspend fun markAllPersonalRecordsDirty(uid: String)
+
     // Goals
     @Query("SELECT * FROM goals")
     suspend fun getGoals(): List<Goal>
@@ -147,6 +159,9 @@ interface GymTrackDao {
 
     @Query("UPDATE goals SET dirty = 0 WHERE id = :id AND updatedAt = :updatedAt")
     suspend fun clearGoalDirty(id: String, updatedAt: Long)
+
+    @Query("UPDATE goals SET dirty = 1 WHERE ownerId = :uid")
+    suspend fun markAllGoalsDirty(uid: String)
 
     // Contagem de pendências de envio (para o indicador de sincronização)
     @Query(

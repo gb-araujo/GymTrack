@@ -179,6 +179,16 @@ class GymTrackViewModel(
         syncJob = viewModelScope.launch { sync.sync(u) }
     }
 
+    /** Força o reenvio de tudo, mesmo o que já estava marcado como sincronizado (ex: depois de habilitar o Firestore). */
+    fun forceFullResync() {
+        val u = uid ?: return
+        syncJob?.cancel()
+        syncJob = viewModelScope.launch {
+            repo.forceFullResync(u)
+            sync.sync(u)
+        }
+    }
+
     /** Executa uma escrita no banco e agenda a sincronização. */
     private fun write(block: suspend () -> Unit) = viewModelScope.launch {
         block()

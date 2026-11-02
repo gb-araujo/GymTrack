@@ -16,8 +16,10 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Upload
@@ -165,7 +167,10 @@ private fun ImportDialog(onImport: (String) -> Boolean, onClose: () -> Unit) {
         Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(TC.Slate900).padding(20.dp)) {
             Text("Importar Ficha (JSON)", color = TC.White, fontSize = 18.sp, fontWeight = FontWeight.Bold)
             Spacer(Modifier.height(12.dp))
-            Box(Modifier.fillMaxWidth().heightIn(min = 140.dp).clip(RoundedCornerShape(12.dp)).background(TC.Slate800).padding(12.dp)) {
+            Box(
+                Modifier.fillMaxWidth().heightIn(min = 140.dp, max = 280.dp).clip(RoundedCornerShape(12.dp)).background(TC.Slate800)
+                    .verticalScroll(rememberScrollState()).padding(12.dp),
+            ) {
                 if (text.isEmpty()) Text("Cole o JSON da ficha aqui...", color = TC.Slate500, fontSize = 13.sp)
                 BasicTextField(text, { text = it }, textStyle = TextStyle(color = TC.Slate300, fontSize = 13.sp), cursorBrush = androidx.compose.ui.graphics.SolidColor(TC.Indigo400), modifier = Modifier.fillMaxWidth())
             }

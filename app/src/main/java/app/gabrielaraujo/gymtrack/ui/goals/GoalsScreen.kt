@@ -1,4 +1,4 @@
-package app.gabrielaraujo.gymtrack.ui.screens
+package app.gabrielaraujo.gymtrack.ui.goals
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -36,16 +36,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import app.gabrielaraujo.gymtrack.data.Goal
-import app.gabrielaraujo.gymtrack.domain.bodyWeightProgress
-import app.gabrielaraujo.gymtrack.domain.weightAt
-import app.gabrielaraujo.gymtrack.ui.GymTrackViewModel
+import app.gabrielaraujo.gymtrack.data.Exercise
+import app.gabrielaraujo.gymtrack.domain.GoalTypes
 import app.gabrielaraujo.gymtrack.ui.components.BtnVariant
+import app.gabrielaraujo.gymtrack.ui.components.ExercisePickerDialog
+import app.gabrielaraujo.gymtrack.ui.components.GymTrackButton
 import app.gabrielaraujo.gymtrack.ui.components.NumberStepper
 import app.gabrielaraujo.gymtrack.ui.components.ProgressBar
-import app.gabrielaraujo.gymtrack.ui.components.GymTrackButton
 import app.gabrielaraujo.gymtrack.ui.formatWeight
-import app.gabrielaraujo.gymtrack.data.newId
 import app.gabrielaraujo.gymtrack.ui.theme.TC
 import kotlin.math.min
 import kotlin.math.roundToInt
@@ -53,40 +51,17 @@ import kotlin.math.roundToInt
 private data class GoalType(val value: String, val label: String, val unit: String)
 
 private val goalTypes = listOf(
-    GoalType("workout_count", "Número de treinos", "treinos"),
-    GoalType("weekly_frequency", "Frequência semanal", "treinos/semana"),
-    GoalType("exercise_weight", "Carga em exercício", "kg"),
-    GoalType("body_weight", "Peso corporal", "kg"),
-    GoalType("volume", "Volume total", "kg"),
+    GoalType(GoalTypes.WORKOUT_COUNT, "Número de treinos", "treinos"),
+    GoalType(GoalTypes.WEEKLY_FREQUENCY, "Frequência semanal", "treinos/semana"),
+    GoalType(GoalTypes.EXERCISE_WEIGHT, "Carga em exercício", "kg"),
+    GoalType(GoalTypes.BODY_WEIGHT, "Peso corporal", "kg"),
+    GoalType(GoalTypes.VOLUME, "Volume total", "kg"),
 )
 
 @Composable
-fun GoalsScreen(vm: GymTrackViewModel) {
+fun GoalsScreen(vm: GoalsViewModel) {
     val state by vm.state.collectAsStateWithLifecycle()
     var showNew by remember { mutableStateOf(false) }
-    // Peso corporal vem do Health Connect (balança, relógio ou Samsung Health), quando a importação está ligada.
-    val latestWeight = state.bodyWeights.lastOrNull()?.kg
-
-    fun currentValue(goal: Goal): Double = when (goal.type) {
-        "workout_count" -> state.totalWorkouts.toDouble()
-        "weekly_frequency" -> {
-            val weekStart = System.currentTimeMillis() - 7L * 24 * 3600_000
-            state.sessions.count { it.startTime >= weekStart }.toDouble()
-        }
-        "volume" -> state.sessions.sumOf { it.totalVolume ?: 0.0 }
-        "body_weight" -> latestWeight ?: goal.current
-        else -> goal.current
-    }
-
-    /** Progresso em %; o de peso corporal parte da pesagem de quando a meta foi criada (serve para perder ou ganhar). */
-    fun progressPct(goal: Goal, current: Double): Int = when {
-        goal.type == "body_weight" && latestWeight != null -> {
-            val start = weightAt(state.bodyWeights, goal.createdAt) ?: latestWeight
-            (bodyWeightProgress(start, latestWeight, goal.target) * 100).roundToInt()
-        }
-        goal.target <= 0 -> 0
-        else -> min(100, ((current / goal.target) * 100).roundToInt())
-    }
 
     LazyColumn(
         Modifier.fillMaxWidth().statusBarsPadding().padding(horizontal = 16.dp),
@@ -112,10 +87,11 @@ fun GoalsScreen(vm: GymTrackViewModel) {
                 }
             }
         } else {
-            items(state.goals, key = { it.id }) { goal ->
-                val current = currentValue(goal)
-                val pct = progressPct(goal, current)
-                val done = pct >= 100
+            items(state.goals, key = { it.goal.id }) { item ->
+                val goal = item.goal
+                val current = item.progress.current
+                val pct = item.progress.percent
+                val done = item.progress.done
                 Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(TC.Slate900).padding(16.dp)) {
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                         Column(Modifier.weight(1f)) {
@@ -123,23 +99,24 @@ fun GoalsScreen(vm: GymTrackViewModel) {
                                 if (done) Icon(Icons.Default.EmojiEvents, null, tint = TC.Yellow400, modifier = Modifier.size(14.dp))
                                 Text(goal.title, color = TC.White, fontWeight = FontWeight.SemiBold)
                             }
-                            Text(goalTypes.find { it.value == goal.type }?.label ?: goal.type, color = TC.Slate500, fontSize = 12.sp)
+                            val typeLabel = goalTypes.find { it.value == goal.type }?.label ?: goal.type
+                            Text(item.exerciseName?.let { "$typeLabel · $it" } ?: typeLabel, color = TC.Slate500, fontSize = 12.sp)
                         }
                         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             Column(horizontalAlignment = Alignment.End) {
                                 Text(
-                                    if (goal.type == "body_weight") formatWeight((current * 10).roundToInt() / 10.0) else current.roundToInt().toString(),
+                                    if (goal.type == GoalTypes.BODY_WEIGHT) formatWeight((current * 10).roundToInt() / 10.0) else current.roundToInt().toString(),
                                     color = TC.White, fontSize = 18.sp, fontWeight = FontWeight.Black,
                                 )
                                 Text("/ ${goal.target.roundToInt()} ${goal.unit}", color = TC.Slate500, fontSize = 12.sp)
                             }
-                            Icon(Icons.Default.Delete, "Excluir", tint = TC.Slate600, modifier = Modifier.size(18.dp).clickable { vm.deleteGoal(goal.id) })
+                            Icon(Icons.Default.Delete, "Excluir", tint = TC.Slate600, modifier = Modifier.size(18.dp).clickable { vm.delete(goal.id) })
                         }
                     }
                     Spacer(Modifier.height(10.dp))
                     ProgressBar(fraction = pct / 100f, color = if (done) TC.Yellow500 else TC.Indigo500)
                     Text("$pct%${if (done) " — Concluída! 🎉" else ""}", color = if (done) TC.Yellow400 else TC.Slate500, fontSize = 12.sp, modifier = Modifier.fillMaxWidth().padding(top = 4.dp), textAlign = androidx.compose.ui.text.style.TextAlign.End)
-                    if (goal.type == "body_weight" && latestWeight == null) {
+                    if (goal.type == GoalTypes.BODY_WEIGHT && !state.hasBodyWeights) {
                         Text("Ligue \"Importar do relógio\" na tela de conta para acompanhar seu peso pelo Health Connect.", color = TC.Slate600, fontSize = 11.sp)
                     }
                 }
@@ -149,9 +126,9 @@ fun GoalsScreen(vm: GymTrackViewModel) {
 
     if (showNew) {
         NewGoalDialog(
-            onCreate = { title, type, target ->
-                val gt = goalTypes.find { it.value == type }
-                vm.addGoal(Goal(id = newId(), type = type, title = title, target = target, unit = gt?.unit ?: "", createdAt = System.currentTimeMillis()))
+            exercises = state.exercises,
+            onCreate = { title, type, target, exerciseId ->
+                vm.add(title, type, target, goalTypes.find { it.value == type }?.unit ?: "", exerciseId)
                 showNew = false
             },
             onClose = { showNew = false },
@@ -160,10 +137,14 @@ fun GoalsScreen(vm: GymTrackViewModel) {
 }
 
 @Composable
-private fun NewGoalDialog(onCreate: (String, String, Double) -> Unit, onClose: () -> Unit) {
+private fun NewGoalDialog(exercises: List<Exercise>, onCreate: (String, String, Double, String?) -> Unit, onClose: () -> Unit) {
     var title by remember { mutableStateOf("") }
-    var type by remember { mutableStateOf("workout_count") }
+    var type by remember { mutableStateOf(GoalTypes.WORKOUT_COUNT) }
     var target by remember { mutableStateOf(10.0) }
+    // Meta de carga precisa de um exercício: o progresso é o recorde dele.
+    var exercise by remember { mutableStateOf<Exercise?>(null) }
+    var pickingExercise by remember { mutableStateOf(false) }
+    val needsExercise = type == GoalTypes.EXERCISE_WEIGHT
 
     androidx.compose.ui.window.Dialog(onDismissRequest = onClose) {
         Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(TC.Slate900).padding(20.dp)) {
@@ -185,6 +166,16 @@ private fun NewGoalDialog(onCreate: (String, String, Double) -> Unit, onClose: (
                     modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp).clip(RoundedCornerShape(10.dp)).background(if (sel) TC.Indigo600 else TC.Slate800).clickable { type = gt.value }.padding(horizontal = 12.dp, vertical = 8.dp),
                 )
             }
+            if (needsExercise) {
+                Spacer(Modifier.height(12.dp))
+                Text("Exercício", color = TC.Slate500, fontSize = 12.sp)
+                Text(
+                    exercise?.name ?: "Escolher exercício",
+                    color = if (exercise != null) TC.White else TC.Indigo400, fontSize = 14.sp,
+                    modifier = Modifier.fillMaxWidth().padding(top = 4.dp).clip(RoundedCornerShape(12.dp)).background(TC.Slate800)
+                        .clickable { pickingExercise = true }.padding(horizontal = 12.dp, vertical = 10.dp),
+                )
+            }
             Spacer(Modifier.height(12.dp))
             Text("Meta (${goalTypes.find { it.value == type }?.unit ?: ""})", color = TC.Slate500, fontSize = 12.sp)
             Spacer(Modifier.height(4.dp))
@@ -192,8 +183,26 @@ private fun NewGoalDialog(onCreate: (String, String, Double) -> Unit, onClose: (
             Spacer(Modifier.height(16.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 GymTrackButton("Cancelar", onClick = onClose, variant = BtnVariant.Ghost, modifier = Modifier.weight(1f))
-                GymTrackButton("Criar", onClick = { if (title.isNotBlank()) onCreate(title.trim(), type, target) }, modifier = Modifier.weight(1f))
+                GymTrackButton(
+                    "Criar",
+                    onClick = {
+                        val ready = title.isNotBlank() && (!needsExercise || exercise != null)
+                        if (ready) onCreate(title.trim(), type, target, exercise?.id?.takeIf { needsExercise })
+                    },
+                    modifier = Modifier.weight(1f),
+                )
             }
         }
+    }
+
+    if (pickingExercise) {
+        ExercisePickerDialog(
+            exercises,
+            onSelect = { id, _ ->
+                exercise = exercises.find { it.id == id }
+                pickingExercise = false
+            },
+            onClose = { pickingExercise = false },
+        )
     }
 }

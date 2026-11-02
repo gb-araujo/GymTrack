@@ -1,4 +1,4 @@
-package app.gabrielaraujo.gymtrack.ui.screens
+package app.gabrielaraujo.gymtrack.ui.plans
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -40,25 +40,19 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.gabrielaraujo.gymtrack.data.WorkoutDay
 import app.gabrielaraujo.gymtrack.data.WorkoutExercise
-import app.gabrielaraujo.gymtrack.data.WorkoutPlan
-import app.gabrielaraujo.gymtrack.ui.GymTrackViewModel
-import app.gabrielaraujo.gymtrack.ui.components.NumberStepper
 import app.gabrielaraujo.gymtrack.data.newId
+import app.gabrielaraujo.gymtrack.ui.components.ExercisePickerDialog
+import app.gabrielaraujo.gymtrack.ui.components.NumberStepper
 import app.gabrielaraujo.gymtrack.ui.theme.TC
 
 @Composable
-fun PlanEditorScreen(vm: GymTrackViewModel, planId: String, onDone: () -> Unit) {
+fun PlanEditorScreen(vm: PlanEditorViewModel, onDone: () -> Unit) {
     val state by vm.state.collectAsStateWithLifecycle()
-    val now = System.currentTimeMillis()
-    val initial = remember(planId) {
-        if (planId == "new") WorkoutPlan(id = newId(), name = "Nova Ficha", createdAt = now, updatedAt = now)
-        else state.plans.find { it.id == planId } ?: WorkoutPlan(id = newId(), name = "Nova Ficha", createdAt = now, updatedAt = now)
-    }
-    var plan by remember { mutableStateOf(initial) }
     var pickingForDay by remember { mutableStateOf<String?>(null) }
+    val plan = state.plan ?: return
 
     fun updateDay(dayId: String, f: (WorkoutDay) -> WorkoutDay) {
-        plan = plan.copy(days = plan.days.map { if (it.id == dayId) f(it) else it })
+        vm.update { p -> p.copy(days = p.days.map { if (it.id == dayId) f(it) else it }) }
     }
     fun updateExercise(dayId: String, weId: String, f: (WorkoutExercise) -> WorkoutExercise) {
         updateDay(dayId) { d -> d.copy(exercises = d.exercises.map { if (it.id == weId) f(it) else it }) }
@@ -68,19 +62,19 @@ fun PlanEditorScreen(vm: GymTrackViewModel, planId: String, onDone: () -> Unit) 
         Row(Modifier.fillMaxWidth().statusBarsPadding().padding(horizontal = 16.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Icon(Icons.AutoMirrored.Filled.ArrowBack, "Voltar", tint = TC.Slate400, modifier = Modifier.clip(RoundedCornerShape(10.dp)).clickable { onDone() }.padding(6.dp))
             Text("Editor de Ficha", color = TC.White, fontSize = 18.sp, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
-            Text("Salvar", color = TC.White, fontSize = 14.sp, fontWeight = FontWeight.Bold, modifier = Modifier.clip(RoundedCornerShape(12.dp)).background(TC.Indigo600).clickable { vm.savePlan(plan); onDone() }.padding(horizontal = 16.dp, vertical = 8.dp))
+            Text("Salvar", color = TC.White, fontSize = 14.sp, fontWeight = FontWeight.Bold, modifier = Modifier.clip(RoundedCornerShape(12.dp)).background(TC.Indigo600).clickable { vm.save(); onDone() }.padding(horizontal = 16.dp, vertical = 8.dp))
         }
 
         LazyColumn(Modifier.fillMaxWidth().weight(1f).padding(horizontal = 16.dp), contentPadding = androidx.compose.foundation.layout.PaddingValues(vertical = 16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
             item {
-                EditField(plan.name, { plan = plan.copy(name = it) }, "Nome da ficha", big = true)
+                EditField(plan.name, { name -> vm.update { it.copy(name = name) } }, "Nome da ficha", big = true)
             }
             items(plan.days, key = { it.id }) { day ->
                 Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(TC.Slate900).padding(12.dp)) {
                     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         Box(Modifier.width(44.dp)) { EditField(day.label, { updateDay(day.id) { d -> d.copy(label = it) } }, "A", center = true) }
                         Box(Modifier.weight(1f)) { EditField(day.name, { updateDay(day.id) { d -> d.copy(name = it) } }, "Nome (ex: Peito)") }
-                        Icon(Icons.Default.Delete, "Remover treino", tint = TC.Slate500, modifier = Modifier.clickable { plan = plan.copy(days = plan.days.filter { it.id != day.id }.mapIndexed { i, d -> d.copy(order = i) }) })
+                        Icon(Icons.Default.Delete, "Remover treino", tint = TC.Slate500, modifier = Modifier.clickable { vm.update { p -> p.copy(days = p.days.filter { it.id != day.id }.mapIndexed { i, d -> d.copy(order = i) }) } })
                     }
                     Spacer(Modifier.height(8.dp))
                     day.exercises.forEach { we ->
@@ -115,14 +109,14 @@ fun PlanEditorScreen(vm: GymTrackViewModel, planId: String, onDone: () -> Unit) 
                 AddRow("Adicionar treino") {
                     val labels = listOf("A", "B", "C", "D", "E", "F")
                     val label = labels.getOrElse(plan.days.size) { "${plan.days.size + 1}" }
-                    plan = plan.copy(days = plan.days + WorkoutDay(id = newId(), label = label, name = "", order = plan.days.size))
+                    vm.update { p -> p.copy(days = p.days + WorkoutDay(id = newId(), label = label, name = "", order = p.days.size)) }
                 }
             }
         }
     }
 
     pickingForDay?.let { dayId ->
-        ExercisePickerDialog(vm, onSelect = { id, _ ->
+        ExercisePickerDialog(state.exercises, onSelect = { id, _ ->
             updateDay(dayId) { d ->
                 d.copy(exercises = d.exercises + WorkoutExercise(id = newId(), exerciseId = id, sets = 3, repMin = 8, repMax = 12, restSeconds = 90, initialWeight = 0.0, order = d.exercises.size))
             }
@@ -130,8 +124,6 @@ fun PlanEditorScreen(vm: GymTrackViewModel, planId: String, onDone: () -> Unit) 
         }, onClose = { pickingForDay = null })
     }
 }
-
-// helper placeholder removed below
 
 @Composable
 private fun AddRow(label: String, onClick: () -> Unit) {

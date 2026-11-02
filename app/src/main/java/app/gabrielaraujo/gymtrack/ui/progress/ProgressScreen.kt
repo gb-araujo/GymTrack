@@ -1,4 +1,4 @@
-package app.gabrielaraujo.gymtrack.ui.screens
+package app.gabrielaraujo.gymtrack.ui.progress
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -36,14 +36,12 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.gabrielaraujo.gymtrack.domain.BodyWeightEntry
-import app.gabrielaraujo.gymtrack.ui.GymTrackViewModel
 import app.gabrielaraujo.gymtrack.ui.components.LineChart
 import app.gabrielaraujo.gymtrack.ui.formatBodyWeight
 import app.gabrielaraujo.gymtrack.ui.formatDate
 import app.gabrielaraujo.gymtrack.ui.formatShortDateTime
 import app.gabrielaraujo.gymtrack.ui.formatWeight
 import app.gabrielaraujo.gymtrack.ui.theme.TC
-import java.util.Calendar
 import kotlin.math.abs
 import kotlin.math.floor
 import kotlin.math.max
@@ -52,12 +50,12 @@ import kotlin.math.roundToInt
 private enum class ProgressTab { RECORDS, VOLUME, FREQUENCY, WEIGHT }
 
 @Composable
-fun ProgressScreen(vm: GymTrackViewModel) {
+fun ProgressScreen(vm: ProgressViewModel) {
     val state by vm.state.collectAsStateWithLifecycle()
     var tab by remember { mutableStateOf(ProgressTab.RECORDS) }
     var selectedExercise by remember { mutableStateOf<String?>(null) }
 
-    val prs = state.personalRecords.values.sortedByDescending { it.date }
+    val prs = state.records
 
     LazyColumn(
         Modifier.fillMaxWidth().statusBarsPadding().padding(horizontal = 16.dp),
@@ -69,8 +67,8 @@ fun ProgressScreen(vm: GymTrackViewModel) {
         item {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 Summary("Treinos", state.totalWorkouts.toString(), Modifier.weight(1f))
-                Summary("Este mês", monthCount(state.sessions.map { it.startTime }).toString(), Modifier.weight(1f))
-                Summary("PRs", state.personalRecords.size.toString(), Modifier.weight(1f))
+                Summary("Este mês", state.workoutsThisMonth.toString(), Modifier.weight(1f))
+                Summary("PRs", state.records.size.toString(), Modifier.weight(1f))
             }
         }
 
@@ -105,10 +103,7 @@ fun ProgressScreen(vm: GymTrackViewModel) {
                                 }
                             }
                             if (expanded) {
-                                val history = vm.exerciseHistory(pr.exerciseId)
-                                    .reversed()
-                                    .mapNotNull { (_, sets, _) -> sets.filter { it.completed }.maxByOrNull { it.weight }?.weight?.toFloat() }
-                                    .filter { it > 0f }
+                                val history = state.loadHistory[pr.exerciseId].orEmpty().map { it.toFloat() }
                                 if (history.size > 1) {
                                     Spacer(Modifier.height(8.dp))
                                     Text("Evolução de carga", color = TC.Slate500, fontSize = 12.sp)
@@ -120,7 +115,7 @@ fun ProgressScreen(vm: GymTrackViewModel) {
                 }
             }
             ProgressTab.VOLUME -> {
-                val volumeData = state.sessions.take(10).reversed().map { ((it.totalVolume ?: 0.0) / 1000).toFloat() }
+                val volumeData = state.recentVolumesTons.map { it.toFloat() }
                 item {
                     if (volumeData.isEmpty()) {
                         EmptyState(Icons.Default.BarChart, "Sem dados de volume ainda", "")
@@ -133,7 +128,7 @@ fun ProgressScreen(vm: GymTrackViewModel) {
                 }
             }
             ProgressTab.FREQUENCY -> {
-                val weekly = weeklyCounts(state.sessions.map { it.startTime })
+                val weekly = state.weeklyCounts
                 item {
                     Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(TC.Slate900).padding(16.dp)) {
                         Text("Treinos por Semana", color = TC.Slate300, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
@@ -219,23 +214,5 @@ private fun EmptyState(icon: ImageVector, title: String, subtitle: String) {
         Spacer(Modifier.height(12.dp))
         Text(title, color = TC.Slate400)
         if (subtitle.isNotEmpty()) Text(subtitle, color = TC.Slate600, fontSize = 13.sp)
-    }
-}
-
-private fun monthCount(times: List<Long>): Int {
-    val now = Calendar.getInstance()
-    return times.count {
-        val c = Calendar.getInstance().apply { timeInMillis = it }
-        c.get(Calendar.MONTH) == now.get(Calendar.MONTH) && c.get(Calendar.YEAR) == now.get(Calendar.YEAR)
-    }
-}
-
-private fun weeklyCounts(times: List<Long>): List<Int> {
-    val now = System.currentTimeMillis()
-    val week = 7L * 24 * 3600_000
-    return (7 downTo 0).map { i ->
-        val start = now - i * week
-        val end = start + week
-        times.count { it in start until end }
     }
 }

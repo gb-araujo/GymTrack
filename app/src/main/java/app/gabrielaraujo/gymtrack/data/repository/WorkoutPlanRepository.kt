@@ -23,6 +23,9 @@ class WorkoutPlanRepository(
 
     suspend fun plansSnapshot(): List<WorkoutPlan> = dao.getPlans()
 
+    /** A ficha, ou null se não existe ou foi excluída. */
+    suspend fun getPlan(id: String): WorkoutPlan? = dao.getPlan(id)?.takeIf { !it.deleted }
+
     /**
      * Salva nome e dias da ficha (o que o editor muda). Ficha ativa e exclusão vêm do banco, que pode
      * ter mudado (ex.: pela sincronização) enquanto o editor estava aberto com uma cópia.

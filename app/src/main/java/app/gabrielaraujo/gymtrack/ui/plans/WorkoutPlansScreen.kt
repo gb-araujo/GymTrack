@@ -1,4 +1,4 @@
-package app.gabrielaraujo.gymtrack.ui.screens
+package app.gabrielaraujo.gymtrack.ui.plans
 
 import android.content.Intent
 import androidx.compose.foundation.background
@@ -40,11 +40,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.gabrielaraujo.gymtrack.data.WorkoutPlan
-import app.gabrielaraujo.gymtrack.ui.GymTrackViewModel
+import app.gabrielaraujo.gymtrack.data.newId
 import app.gabrielaraujo.gymtrack.ui.components.BtnVariant
 import app.gabrielaraujo.gymtrack.ui.components.GymTrackButton
-import app.gabrielaraujo.gymtrack.ui.components.GymTrackCard
-import app.gabrielaraujo.gymtrack.data.newId
 import app.gabrielaraujo.gymtrack.ui.theme.TC
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
@@ -55,7 +53,7 @@ private data class PlanExport(val schemaVersion: Int = 1, val workoutPlan: Worko
 private val exportJson = Json { prettyPrint = true; ignoreUnknownKeys = true }
 
 @Composable
-fun WorkoutPlansScreen(vm: GymTrackViewModel, onEditPlan: (String) -> Unit, onNewPlan: () -> Unit) {
+fun WorkoutPlansScreen(vm: PlansViewModel, onEditPlan: (String) -> Unit, onNewPlan: () -> Unit) {
     val state by vm.state.collectAsStateWithLifecycle()
     val plans = state.plans
     val context = LocalContext.current
@@ -89,11 +87,11 @@ fun WorkoutPlansScreen(vm: GymTrackViewModel, onEditPlan: (String) -> Unit, onNe
                 items(plans, key = { it.id }) { plan ->
                     PlanCard(
                         plan = plan,
-                        isActive = plan.id == state.activePlan?.id,
+                        isActive = plan.id == state.activePlanId,
                         onEdit = { onEditPlan(plan.id) },
-                        onActivate = { vm.setActivePlan(plan.id) },
-                        onDuplicate = { vm.savePlan(duplicate(plan)) },
-                        onDelete = { vm.deletePlan(plan.id) },
+                        onActivate = { vm.setActive(plan.id) },
+                        onDuplicate = { vm.duplicate(plan) },
+                        onDelete = { vm.delete(plan.id) },
                         onExport = { sharePlan(context, plan) },
                     )
                 }
@@ -105,7 +103,7 @@ fun WorkoutPlansScreen(vm: GymTrackViewModel, onEditPlan: (String) -> Unit, onNe
         ImportDialog(
             onImport = { text ->
                 val plan = parseImport(text) ?: return@ImportDialog false
-                vm.savePlan(plan)
+                vm.import(plan)
                 showImport = false
                 true
             },
@@ -182,19 +180,6 @@ private fun ImportDialog(onImport: (String) -> Boolean, onClose: () -> Unit) {
             }
         }
     }
-}
-
-private fun duplicate(plan: WorkoutPlan): WorkoutPlan {
-    val now = System.currentTimeMillis()
-    return plan.copy(
-        id = newId(),
-        name = "${plan.name} (cópia)",
-        currentDayIndex = 0,
-        createdAt = now,
-        updatedAt = now,
-        isActive = false,
-        days = plan.days.map { d -> d.copy(id = newId(), exercises = d.exercises.map { it.copy(id = newId()) }) },
-    )
 }
 
 private fun sharePlan(context: android.content.Context, plan: WorkoutPlan) {

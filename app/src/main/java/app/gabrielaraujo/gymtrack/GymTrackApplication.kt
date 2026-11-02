@@ -13,6 +13,7 @@ class GymTrackApplication : Application() {
 
     override fun onCreate() {
         super.onCreate()
+        container.start()
         val repos = container.repositories
         // Mantém o widget em dia com o histórico e a ficha ativa.
         container.appScope.launch {

@@ -1,4 +1,4 @@
-package app.gabrielaraujo.gymtrack.ui.screens
+package app.gabrielaraujo.gymtrack.ui.workout
 
 import android.Manifest
 import android.content.pm.PackageManager
@@ -49,16 +49,17 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
-import androidx.core.content.ContextCompat
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.gabrielaraujo.gymtrack.data.SetRecord
-import app.gabrielaraujo.gymtrack.ui.GymTrackViewModel
+import app.gabrielaraujo.gymtrack.domain.suggestedNextWeight
 import app.gabrielaraujo.gymtrack.ui.components.BtnVariant
-import app.gabrielaraujo.gymtrack.ui.components.NumberStepper
+import app.gabrielaraujo.gymtrack.ui.components.ExerciseSubstituteDialog
 import app.gabrielaraujo.gymtrack.ui.components.GymTrackButton
+import app.gabrielaraujo.gymtrack.ui.components.NumberStepper
 import app.gabrielaraujo.gymtrack.ui.formatWeight
 import app.gabrielaraujo.gymtrack.ui.theme.TC
 import app.gabrielaraujo.gymtrack.ui.timeAgo
@@ -83,9 +84,9 @@ private fun clock(seconds: Int): String {
 }
 
 @Composable
-fun WorkoutExecutionScreen(vm: GymTrackViewModel) {
+fun WorkoutExecutionScreen(vm: WorkoutViewModel) {
     val state by vm.state.collectAsStateWithLifecycle()
-    val active = state.activeSession ?: return
+    val active = state.active ?: return
     val session = active.session
     val idx = active.currentExerciseIndex.coerceIn(0, (session.exercises.size - 1).coerceAtLeast(0))
     val current = session.exercises.getOrNull(idx) ?: return
@@ -98,7 +99,7 @@ fun WorkoutExecutionScreen(vm: GymTrackViewModel) {
     var showAbort by remember { mutableStateOf(false) }
     var progressionSuggestion by remember(idx) { mutableStateOf<Double?>(null) }
 
-    val dayExercise = state.activePlan?.days?.find { it.id == session.workoutDayId }
+    val dayExercise = state.plan?.days?.find { it.id == session.workoutDayId }
         ?.exercises?.find { it.id == current.workoutExerciseId }
     val restDefault = dayExercise?.restSeconds ?: 90
 
@@ -111,24 +112,17 @@ fun WorkoutExecutionScreen(vm: GymTrackViewModel) {
     val allDone = completedExercises == total
 
     fun checkProgression(updatedSets: List<SetRecord>) {
-        val repMax = dayExercise?.repMax ?: 0
-        if (repMax == 0) { progressionSuggestion = null; return }
-        val completed = updatedSets.filter { it.completed }
-        if (completed.isEmpty() || completed.size < updatedSets.size) return
-        progressionSuggestion = if (completed.all { it.reps >= repMax }) {
-            val maxW = completed.maxOf { it.weight }
-            ((maxW + 2.5) * 10).toInt() / 10.0
-        } else null
+        progressionSuggestion = suggestedNextWeight(updatedSets, dayExercise?.repMax ?: 0)
     }
 
     fun completeSet(setIndex: Int) {
         val s = current.sets[setIndex]
         if (s.completed) {
-            vm.updateSetRecord(idx, setIndex) { it.copy(completed = false) }
+            vm.updateSet(idx, setIndex) { it.copy(completed = false) }
             progressionSuggestion = null
         } else {
-            vm.updateSetRecord(idx, setIndex) { it.copy(completed = true) }
-            vm.startRestTimer(restDefault, current.id)
+            vm.updateSet(idx, setIndex) { it.copy(completed = true) }
+            vm.startRest(restDefault, current.id)
             checkProgression(current.sets.mapIndexed { i, set -> if (i == setIndex) set.copy(completed = true) else set })
         }
     }
@@ -183,9 +177,9 @@ fun WorkoutExecutionScreen(vm: GymTrackViewModel) {
                     }
                     Spacer(Modifier.height(12.dp))
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        RestBtn("−15s", Modifier.weight(1f)) { vm.adjustRestTimer(-15) }
-                        RestBtn("Pular", Modifier.weight(1f)) { vm.stopRestTimer() }
-                        RestBtn("+15s", Modifier.weight(1f)) { vm.adjustRestTimer(15) }
+                        RestBtn("−15s", Modifier.weight(1f)) { vm.adjustRest(-15) }
+                        RestBtn("Pular", Modifier.weight(1f)) { vm.stopRest() }
+                        RestBtn("+15s", Modifier.weight(1f)) { vm.adjustRest(15) }
                     }
                 }
             }
@@ -233,8 +227,8 @@ fun WorkoutExecutionScreen(vm: GymTrackViewModel) {
                     previous = lastCompletedSets.getOrNull(i),
                     canRemove = current.sets.size > 1,
                     onComplete = { completeSet(i) },
-                    onWeight = { w -> vm.updateSetRecord(idx, i) { it.copy(weight = w) } },
-                    onReps = { r -> vm.updateSetRecord(idx, i) { it.copy(reps = r) } },
+                    onWeight = { w -> vm.updateSet(idx, i) { it.copy(weight = w) } },
+                    onReps = { r -> vm.updateSet(idx, i) { it.copy(reps = r) } },
                     onRemove = { vm.removeSet(idx, i) },
                 )
                 Spacer(Modifier.height(12.dp))
@@ -257,7 +251,7 @@ fun WorkoutExecutionScreen(vm: GymTrackViewModel) {
                         Text("Todas as séries no máximo!", color = TC.Emerald400, fontSize = 14.sp, fontWeight = FontWeight.Bold)
                         Text("Sugestão: aumente para ${formatWeight(sug)}kg no próximo treino.", color = TC.Slate400, fontSize = 12.sp, modifier = Modifier.padding(vertical = 6.dp))
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            GymTrackButton("Aceitar +2.5kg", onClick = { vm.updateExerciseInitialWeight(current.workoutExerciseId, sug); progressionSuggestion = null }, variant = BtnVariant.Success, modifier = Modifier.weight(1f))
+                            GymTrackButton("Aceitar +2.5kg", onClick = { vm.acceptProgression(current.workoutExerciseId, sug); progressionSuggestion = null }, variant = BtnVariant.Success, modifier = Modifier.weight(1f))
                             GymTrackButton("Manter", onClick = { progressionSuggestion = null }, variant = BtnVariant.Ghost, modifier = Modifier.weight(1f))
                         }
                     }
@@ -271,7 +265,7 @@ fun WorkoutExecutionScreen(vm: GymTrackViewModel) {
                 GymTrackButton(
                     "Concluir Exercício" + if (completedSetCount > 0) " ($completedSetCount/${current.sets.size})" else "",
                     onClick = {
-                        vm.completeExercise(idx); vm.stopRestTimer(); progressionSuggestion = null
+                        vm.completeExercise(idx); vm.stopRest(); progressionSuggestion = null
                         if (idx < total - 1) vm.setCurrentExercise(idx + 1)
                     },
                     variant = BtnVariant.Success, modifier = Modifier.fillMaxWidth(),
@@ -294,7 +288,7 @@ fun WorkoutExecutionScreen(vm: GymTrackViewModel) {
 
             if (allDone) {
                 GymTrackButton(
-                    "Finalizar Treino", onClick = { vm.completeSession() }, modifier = Modifier.fillMaxWidth(),
+                    "Finalizar Treino", onClick = { vm.complete() }, modifier = Modifier.fillMaxWidth(),
                     leading = { Icon(Icons.Default.EmojiEvents, null, tint = TC.White, modifier = Modifier.size(20.dp)) },
                 )
                 Spacer(Modifier.height(24.dp))
@@ -303,7 +297,13 @@ fun WorkoutExecutionScreen(vm: GymTrackViewModel) {
     }
 
     if (showSubstitute) {
-        ExerciseSubstituteDialog(vm, current.exerciseId, current.name, idx) { showSubstitute = false }
+        ExerciseSubstituteDialog(
+            exercises = state.exercises,
+            exerciseId = current.exerciseId,
+            exerciseName = current.name,
+            onSubstitute = { id -> vm.substituteExercise(idx, id) },
+            onClose = { showSubstitute = false },
+        )
     }
     if (showAbort) {
         androidx.compose.ui.window.Dialog(onDismissRequest = { showAbort = false }) {
@@ -312,7 +312,7 @@ fun WorkoutExecutionScreen(vm: GymTrackViewModel) {
                 Text("O progresso deste treino não será salvo.", color = TC.Slate400, fontSize = 14.sp, modifier = Modifier.padding(vertical = 12.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     GymTrackButton("Continuar", onClick = { showAbort = false }, variant = BtnVariant.Ghost, modifier = Modifier.weight(1f))
-                    GymTrackButton("Abandonar", onClick = { showAbort = false; vm.abandonSession() }, variant = BtnVariant.Danger, modifier = Modifier.weight(1f))
+                    GymTrackButton("Abandonar", onClick = { showAbort = false; vm.abandon() }, variant = BtnVariant.Danger, modifier = Modifier.weight(1f))
                 }
             }
         }

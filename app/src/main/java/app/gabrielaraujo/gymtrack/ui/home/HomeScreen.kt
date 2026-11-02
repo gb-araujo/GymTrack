@@ -1,8 +1,6 @@
-package app.gabrielaraujo.gymtrack.ui.screens
+package app.gabrielaraujo.gymtrack.ui.home
 
 import android.widget.Toast
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -18,8 +16,6 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
@@ -28,6 +24,7 @@ import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -40,40 +37,45 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import app.gabrielaraujo.gymtrack.ui.GymTrackViewModel
-import app.gabrielaraujo.gymtrack.ui.components.BtnVariant
-import app.gabrielaraujo.gymtrack.ui.components.SectionLabel
+import app.gabrielaraujo.gymtrack.ui.account.AccountDialog
+import app.gabrielaraujo.gymtrack.ui.account.AccountViewModel
+import app.gabrielaraujo.gymtrack.ui.account.SignOutConfirmDialog
 import app.gabrielaraujo.gymtrack.ui.components.GymTrackButton
 import app.gabrielaraujo.gymtrack.ui.components.GymTrackCard
-import app.gabrielaraujo.gymtrack.sync.SyncStatus
+import app.gabrielaraujo.gymtrack.ui.components.SectionLabel
 import app.gabrielaraujo.gymtrack.ui.components.StreakBadge
 import app.gabrielaraujo.gymtrack.ui.components.StreakBar
 import app.gabrielaraujo.gymtrack.ui.components.SyncIndicator
-import app.gabrielaraujo.gymtrack.ui.components.syncStatusText
-import app.gabrielaraujo.gymtrack.ui.findActivity
-import app.gabrielaraujo.gymtrack.ui.formatDate
 import app.gabrielaraujo.gymtrack.ui.formatDuration
 import app.gabrielaraujo.gymtrack.ui.theme.TC
 import app.gabrielaraujo.gymtrack.ui.timeAgo
-import java.util.Calendar
 
 @Composable
 fun HomeScreen(
-    vm: GymTrackViewModel,
-    onStart: () -> Unit,
+    vm: HomeViewModel,
+    account: AccountViewModel,
     onGoPlans: () -> Unit,
     onGoProgress: () -> Unit,
     onOpenSession: (String) -> Unit,
 ) {
     val state by vm.state.collectAsStateWithLifecycle()
-    val user by vm.user.collectAsStateWithLifecycle()
+    val accountState by account.state.collectAsStateWithLifecycle()
+    val user = accountState.user
     val plan = state.activePlan
     val nextDay = plan?.days?.getOrNull(state.nextDayIndex)
-    val lastSession = state.sessions.firstOrNull()
-    val prs = state.personalRecords.values.take(3)
+    val lastSession = state.lastSession
+    val prs = state.topRecords
     var showAccount by remember { mutableStateOf(false) }
-    val signOutPending by vm.signOutPending.collectAsStateWithLifecycle()
     var showDayPicker by remember { mutableStateOf(false) }
+
+    // Avisos da conta (ex.: resultado do backup), mesmo que o diálogo já tenha fechado.
+    val context = LocalContext.current
+    LaunchedEffect(accountState.message) {
+        accountState.message?.let {
+            Toast.makeText(context, it, Toast.LENGTH_LONG).show()
+            account.messageShown()
+        }
+    }
 
     Box(Modifier.fillMaxWidth()) {
     LazyColumn(
@@ -83,7 +85,7 @@ fun HomeScreen(
     ) {
         item {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End, verticalAlignment = Alignment.CenterVertically) {
-                if (user != null) SyncIndicator(state.syncStatus, state.pendingSync, onClick = { showAccount = true })
+                if (user != null) SyncIndicator(accountState.syncStatus, accountState.pendingSync, onClick = { showAccount = true })
                 Spacer(Modifier.width(8.dp))
                 val label = user?.let { it.displayName ?: it.email } ?: "Entrar"
                 Text(
@@ -106,7 +108,7 @@ fun HomeScreen(
         item { StreakBar(state.streak) }
 
         item {
-            if (nextDay != null && plan != null) {
+            if (nextDay != null) {
                 GymTrackCard {
                     Column {
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
@@ -122,7 +124,7 @@ fun HomeScreen(
                         Spacer(Modifier.height(16.dp))
                         GymTrackButton(
                             "Iniciar Treino",
-                            onClick = { vm.startSession(onStarted = onStart) },
+                            onClick = { vm.startSession() },
                             modifier = Modifier.fillMaxWidth(),
                             leading = { Icon(Icons.Default.PlayArrow, null, tint = TC.White, modifier = Modifier.size(20.dp)) },
                         )
@@ -202,7 +204,7 @@ fun HomeScreen(
             }
         }
 
-        if (state.sessions.isNotEmpty()) {
+        if (state.totalWorkouts > 0) {
             item {
                 GymTrackCard {
                     Column {
@@ -210,8 +212,8 @@ fun HomeScreen(
                         Spacer(Modifier.height(12.dp))
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                             StatCol(state.totalWorkouts.toString(), "Total")
-                            StatCol(monthCount(state.sessions.map { it.startTime }).toString(), "Este mês")
-                            StatCol(state.personalRecords.size.toString(), "PRs")
+                            StatCol(state.workoutsThisMonth.toString(), "Este mês")
+                            StatCol(state.recordCount.toString(), "PRs")
                         }
                     }
                 }
@@ -219,15 +221,15 @@ fun HomeScreen(
         }
     }
 
-    if (showAccount) AccountDialog(vm) { showAccount = false }
-    signOutPending?.let { pending ->
-        SignOutConfirmDialog(pending, onConfirm = { vm.confirmSignOut() }, onCancel = { vm.cancelSignOut() })
+    if (showAccount) AccountDialog(account) { showAccount = false }
+    accountState.signOutPending?.let { pending ->
+        SignOutConfirmDialog(pending, onConfirm = { account.confirmSignOut() }, onCancel = { account.cancelSignOut() })
     }
     if (showDayPicker && plan != null) {
         DayPickerDialog(
             plan = plan,
             nextIndex = state.nextDayIndex,
-            onPick = { index -> showDayPicker = false; vm.startSession(dayIndex = index, onStarted = onStart) },
+            onPick = { index -> showDayPicker = false; vm.startSession(dayIndex = index) },
             onClose = { showDayPicker = false },
         )
     }
@@ -270,150 +272,10 @@ private fun DayPickerDialog(
     }
 }
 
-/** Confirmação de saída quando há alterações que ainda não subiram para a nuvem. */
-@Composable
-private fun SignOutConfirmDialog(pending: Int, onConfirm: () -> Unit, onCancel: () -> Unit) {
-    androidx.compose.ui.window.Dialog(onDismissRequest = onCancel) {
-        Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(TC.Slate900).padding(24.dp)) {
-            Text("Sair sem sincronizar?", color = TC.White, fontSize = 18.sp, fontWeight = FontWeight.Bold)
-            Text(
-                (if (pending == 1) "1 alteração ainda não foi enviada" else "$pending alterações ainda não foram enviadas") +
-                    " para a nuvem. Ao sair, os dados da conta são apagados deste aparelho e essas alterações serão perdidas.",
-                color = TC.Slate400, fontSize = 14.sp, modifier = Modifier.padding(vertical = 12.dp),
-            )
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                GymTrackButton("Cancelar", onClick = onCancel, variant = BtnVariant.Ghost, modifier = Modifier.weight(1f))
-                GymTrackButton("Sair", onClick = onConfirm, variant = BtnVariant.Danger, modifier = Modifier.weight(1f))
-            }
-        }
-    }
-}
-
-@Composable
-private fun AccountDialog(vm: GymTrackViewModel, onClose: () -> Unit) {
-    val state by vm.state.collectAsStateWithLifecycle()
-    val user by vm.user.collectAsStateWithLifecycle()
-    val signingIn by vm.signingIn.collectAsStateWithLifecycle()
-    val authError by vm.authError.collectAsStateWithLifecycle()
-    val context = LocalContext.current
-
-    val importLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
-        if (uri != null) {
-            val text = runCatching {
-                context.contentResolver.openInputStream(uri)?.bufferedReader()?.use { it.readText() }
-            }.getOrNull()
-            if (text.isNullOrBlank()) {
-                Toast.makeText(context, "Não consegui ler o arquivo.", Toast.LENGTH_LONG).show()
-            } else {
-                vm.importBackup(text) { count ->
-                    val msg = if (count < 0) "Falha ao importar: backup inválido." else "Importados $count registros."
-                    Toast.makeText(context, msg, Toast.LENGTH_LONG).show()
-                }
-            }
-        }
-    }
-    val exportLauncher = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/json")) { uri ->
-        if (uri != null) {
-            vm.exportBackup(open = { context.contentResolver.openOutputStream(uri) }) { ok ->
-                Toast.makeText(context, if (ok) "Backup salvo." else "Falha ao salvar o backup.", Toast.LENGTH_LONG).show()
-            }
-        }
-    }
-
-    androidx.compose.ui.window.Dialog(onDismissRequest = onClose) {
-        Column(
-            Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(TC.Slate900)
-                .verticalScroll(rememberScrollState()).padding(20.dp),
-        ) {
-            Text("Conta", color = TC.White, fontSize = 18.sp, fontWeight = FontWeight.Bold)
-            Spacer(Modifier.height(12.dp))
-            val u = user
-            if (u != null) {
-                Text(u.displayName ?: "Usuário", color = TC.White, fontWeight = FontWeight.SemiBold)
-                Text(u.email ?: "", color = TC.Slate500, fontSize = 12.sp)
-                Spacer(Modifier.height(8.dp))
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    SyncIndicator(state.syncStatus, state.pendingSync, onClick = { vm.syncNow() })
-                    val isError = state.syncStatus is SyncStatus.Error
-                    Text(
-                        syncStatusText(state.syncStatus, state.pendingSync),
-                        color = if (isError) TC.Red400 else TC.Slate400, fontSize = 12.sp, modifier = Modifier.weight(1f),
-                    )
-                }
-                Spacer(Modifier.height(8.dp))
-                GymTrackButton(
-                    "Sincronizar agora",
-                    onClick = { vm.syncNow() },
-                    variant = BtnVariant.Ghost,
-                    modifier = Modifier.fillMaxWidth(),
-                )
-                Spacer(Modifier.height(8.dp))
-                GymTrackButton(
-                    "Reenviar tudo para a nuvem",
-                    onClick = {
-                        vm.forceFullResync()
-                        Toast.makeText(context, "Reenviando todos os dados…", Toast.LENGTH_SHORT).show()
-                    },
-                    variant = BtnVariant.Ghost,
-                    modifier = Modifier.fillMaxWidth(),
-                )
-                Spacer(Modifier.height(8.dp))
-                GymTrackButton("Sair", onClick = { vm.signOut(); onClose() }, variant = BtnVariant.Ghost, modifier = Modifier.fillMaxWidth())
-            } else {
-                Text("Entre com o Google para sincronizar seus treinos na nuvem e acessá-los em outros dispositivos.", color = TC.Slate400, fontSize = 14.sp)
-                if (authError != null) {
-                    Spacer(Modifier.height(8.dp))
-                    Text(authError ?: "", color = TC.Red400, fontSize = 12.sp)
-                }
-                Spacer(Modifier.height(16.dp))
-                GymTrackButton(
-                    if (signingIn) "Entrando..." else "Entrar com Google",
-                    onClick = { context.findActivity()?.let { vm.signIn(it) } },
-                    modifier = Modifier.fillMaxWidth(),
-                )
-            }
-
-            Spacer(Modifier.height(16.dp))
-            Text("Health Connect", color = TC.Slate500, fontSize = 12.sp)
-            Spacer(Modifier.height(6.dp))
-            HealthConnectSection(onImportEnabled = { vm.refreshHealthData(backfill = true) })
-
-            Spacer(Modifier.height(16.dp))
-            Text("Backup", color = TC.Slate500, fontSize = 12.sp)
-            Spacer(Modifier.height(6.dp))
-            GymTrackButton(
-                "Exportar backup (JSON)",
-                onClick = { exportLauncher.launch("gymtrack-backup-${formatDate(System.currentTimeMillis(), "yyyy-MM-dd")}.json") },
-                variant = BtnVariant.Ghost,
-                modifier = Modifier.fillMaxWidth(),
-            )
-            Spacer(Modifier.height(6.dp))
-            GymTrackButton(
-                "Importar backup (JSON)",
-                onClick = { importLauncher.launch(arrayOf("application/json", "text/plain", "*/*")) },
-                variant = BtnVariant.Ghost,
-                modifier = Modifier.fillMaxWidth(),
-            )
-            Text(
-                "Inclui fichas, histórico, recordes, metas e exercícios personalizados. Também aceita o backup do app web antigo.",
-                color = TC.Slate600, fontSize = 11.sp, modifier = Modifier.padding(top = 6.dp),
-            )
-        }
-    }
-}
-
 @Composable
 private fun StatCol(value: String, label: String) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Text(value, color = TC.White, fontSize = 24.sp, fontWeight = FontWeight.Black)
         Text(label, color = TC.Slate500, fontSize = 12.sp)
-    }
-}
-
-private fun monthCount(times: List<Long>): Int {
-    val now = Calendar.getInstance()
-    return times.count {
-        val c = Calendar.getInstance().apply { timeInMillis = it }
-        c.get(Calendar.MONTH) == now.get(Calendar.MONTH) && c.get(Calendar.YEAR) == now.get(Calendar.YEAR)
     }
 }

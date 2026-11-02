@@ -1,4 +1,4 @@
-package app.gabrielaraujo.gymtrack.ui.screens
+package app.gabrielaraujo.gymtrack.ui.workout
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -28,18 +28,17 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import app.gabrielaraujo.gymtrack.ui.GymTrackViewModel
 import app.gabrielaraujo.gymtrack.ui.components.GymTrackButton
 import app.gabrielaraujo.gymtrack.ui.formatDuration
 import app.gabrielaraujo.gymtrack.ui.formatVolume
 import app.gabrielaraujo.gymtrack.ui.formatWeight
-import app.gabrielaraujo.gymtrack.ui.watchStats
 import app.gabrielaraujo.gymtrack.ui.theme.TC
+import app.gabrielaraujo.gymtrack.ui.watchStats
 
 @Composable
-fun SessionSummaryScreen(vm: GymTrackViewModel, onFinish: () -> Unit) {
+fun SessionSummaryScreen(vm: WorkoutViewModel, onFinish: () -> Unit) {
     val state by vm.state.collectAsStateWithLifecycle()
-    val session = state.activeSession?.session ?: return
+    val session = state.active?.session ?: return
     val prs = session.prsAchieved
 
     Column(

@@ -1,4 +1,4 @@
-package app.gabrielaraujo.gymtrack.ui.screens
+package app.gabrielaraujo.gymtrack.ui.history
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -40,22 +40,23 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.gabrielaraujo.gymtrack.data.SessionExercise
 import app.gabrielaraujo.gymtrack.data.SetRecord
 import app.gabrielaraujo.gymtrack.data.WorkoutSession
-import app.gabrielaraujo.gymtrack.ui.GymTrackViewModel
+import app.gabrielaraujo.gymtrack.domain.sessionTotals
+import app.gabrielaraujo.gymtrack.session.withAddedSet
 import app.gabrielaraujo.gymtrack.ui.components.BtnVariant
 import app.gabrielaraujo.gymtrack.ui.components.GymTrackButton
 import app.gabrielaraujo.gymtrack.ui.components.NumberStepper
-import app.gabrielaraujo.gymtrack.ui.withAddedSet
 import app.gabrielaraujo.gymtrack.ui.formatDuration
 import app.gabrielaraujo.gymtrack.ui.formatFullDate
 import app.gabrielaraujo.gymtrack.ui.formatVolume
 import app.gabrielaraujo.gymtrack.ui.formatWeight
-import app.gabrielaraujo.gymtrack.ui.watchStats
 import app.gabrielaraujo.gymtrack.ui.theme.TC
+import app.gabrielaraujo.gymtrack.ui.watchStats
 import kotlin.math.roundToInt
 
 @Composable
-fun HistoryDetailScreen(vm: GymTrackViewModel, sessionId: String, onBack: () -> Unit) {
+fun HistoryDetailScreen(vm: HistoryViewModel, sessionId: String, onBack: () -> Unit) {
     val state by vm.state.collectAsStateWithLifecycle()
+    if (!state.loaded) return
     val session = state.sessions.find { it.id == sessionId }
     var draft by remember(sessionId) { mutableStateOf<WorkoutSession?>(null) }
     var confirmDelete by remember { mutableStateOf(false) }
@@ -84,7 +85,7 @@ fun HistoryDetailScreen(vm: GymTrackViewModel, sessionId: String, onBack: () -> 
                 session = editing,
                 onChange = { draft = it },
                 onCancel = { draft = null },
-                onSave = { vm.updateCompletedSession(editing); draft = null },
+                onSave = { vm.update(editing); draft = null },
                 modifier = Modifier.weight(1f),
             )
             return@Column
@@ -118,7 +119,7 @@ fun HistoryDetailScreen(vm: GymTrackViewModel, sessionId: String, onBack: () -> 
                         }
                         Spacer(Modifier.height(4.dp))
                         session.prsAchieved.forEach { id ->
-                            val pr = state.personalRecords[id]
+                            val pr = state.records[id]
                             Text("🏆 ${pr?.exerciseName ?: id}${if (pr != null) " · ${formatWeight(pr.weight)}kg × ${pr.reps}" else ""}", color = TC.Yellow400.copy(alpha = 0.9f), fontSize = 14.sp)
                         }
                     }
@@ -128,7 +129,7 @@ fun HistoryDetailScreen(vm: GymTrackViewModel, sessionId: String, onBack: () -> 
             for (ex in session.exercises) {
                 item {
                     val completedSets = ex.sets.filter { it.completed }
-                    val volume = completedSets.sumOf { it.weight * it.reps }
+                    val volume = sessionTotals(listOf(ex)).volume
                     Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(TC.Slate900).padding(16.dp)) {
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                             Column {
@@ -168,7 +169,7 @@ fun HistoryDetailScreen(vm: GymTrackViewModel, sessionId: String, onBack: () -> 
                 Text("O treino sai do histórico e os recordes pessoais são recalculados. Não dá para desfazer.", color = TC.Slate400, fontSize = 14.sp, modifier = Modifier.padding(vertical = 12.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     GymTrackButton("Cancelar", onClick = { confirmDelete = false }, variant = BtnVariant.Ghost, modifier = Modifier.weight(1f))
-                    GymTrackButton("Excluir", onClick = { confirmDelete = false; vm.deleteCompletedSession(sessionId); onBack() }, variant = BtnVariant.Danger, modifier = Modifier.weight(1f))
+                    GymTrackButton("Excluir", onClick = { confirmDelete = false; vm.delete(sessionId); onBack() }, variant = BtnVariant.Danger, modifier = Modifier.weight(1f))
                 }
             }
         }

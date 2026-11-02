@@ -1,4 +1,4 @@
-package app.gabrielaraujo.gymtrack.ui.screens
+package app.gabrielaraujo.gymtrack.ui.history
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -24,9 +24,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import app.gabrielaraujo.gymtrack.ui.GymTrackViewModel
-import app.gabrielaraujo.gymtrack.ui.components.SectionLabel
 import app.gabrielaraujo.gymtrack.ui.components.GymTrackCard
+import app.gabrielaraujo.gymtrack.ui.components.SectionLabel
 import app.gabrielaraujo.gymtrack.ui.formatDuration
 import app.gabrielaraujo.gymtrack.ui.formatMonthYear
 import app.gabrielaraujo.gymtrack.ui.formatShortDateTime
@@ -34,7 +33,7 @@ import app.gabrielaraujo.gymtrack.ui.formatVolume
 import app.gabrielaraujo.gymtrack.ui.theme.TC
 
 @Composable
-fun HistoryScreen(vm: GymTrackViewModel, onOpenSession: (String) -> Unit) {
+fun HistoryScreen(vm: HistoryViewModel, onOpenSession: (String) -> Unit) {
     val state by vm.state.collectAsStateWithLifecycle()
     val grouped = state.sessions.groupBy { formatMonthYear(it.startTime) }
 

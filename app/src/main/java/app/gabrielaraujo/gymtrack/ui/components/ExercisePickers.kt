@@ -1,4 +1,4 @@
-package app.gabrielaraujo.gymtrack.ui.screens
+package app.gabrielaraujo.gymtrack.ui.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -6,9 +6,9 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
@@ -29,16 +29,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.gabrielaraujo.gymtrack.data.Exercise
-import app.gabrielaraujo.gymtrack.ui.GymTrackViewModel
 import app.gabrielaraujo.gymtrack.data.getSuggestions
 import app.gabrielaraujo.gymtrack.ui.components.BtnVariant
 import app.gabrielaraujo.gymtrack.ui.components.GymTrackButton
@@ -46,13 +43,13 @@ import app.gabrielaraujo.gymtrack.ui.theme.TC
 
 private val muscles = listOf("Todos", "Peito", "Costas", "Perna", "Ombro", "Bíceps", "Tríceps", "Abdômen")
 
+/** Catálogo completo com busca e filtro por músculo. [onSelect] recebe id e nome. */
 @Composable
-fun ExercisePickerDialog(vm: GymTrackViewModel, onSelect: (String, String) -> Unit, onClose: () -> Unit) {
-    val state by vm.state.collectAsStateWithLifecycle()
+fun ExercisePickerDialog(exercises: List<Exercise>, onSelect: (String, String) -> Unit, onClose: () -> Unit) {
     var search by remember { mutableStateOf("") }
     var muscle by remember { mutableStateOf("Todos") }
 
-    val filtered = state.exercises.filter { ex ->
+    val filtered = exercises.filter { ex ->
         val matchSearch = ex.name.contains(search, ignoreCase = true)
         val matchMuscle = muscle == "Todos" || ex.primaryMuscle.contains(muscle)
         matchSearch && matchMuscle
@@ -100,11 +97,17 @@ fun ExercisePickerDialog(vm: GymTrackViewModel, onSelect: (String, String) -> Un
     }
 }
 
+/** Substituição de um exercício durante o treino: sugestões equivalentes ou qualquer outro do catálogo. */
 @Composable
-fun ExerciseSubstituteDialog(vm: GymTrackViewModel, exerciseId: String, exerciseName: String, exerciseIndex: Int, onClose: () -> Unit) {
-    val state by vm.state.collectAsStateWithLifecycle()
-    val suggestions = getSuggestions(exerciseId, state.exercises)
-    val target = state.exercises.find { it.id == exerciseId }
+fun ExerciseSubstituteDialog(
+    exercises: List<Exercise>,
+    exerciseId: String,
+    exerciseName: String,
+    onSubstitute: (String) -> Unit,
+    onClose: () -> Unit,
+) {
+    val suggestions = getSuggestions(exerciseId, exercises)
+    val target = exercises.find { it.id == exerciseId }
     var showPicker by remember { mutableStateOf(false) }
 
     Dialog(onDismissRequest = onClose, properties = DialogProperties(usePlatformDefaultWidth = false)) {
@@ -126,7 +129,7 @@ fun ExerciseSubstituteDialog(vm: GymTrackViewModel, exerciseId: String, exercise
                         val equivalent = ex.primaryMuscle == target?.primaryMuscle && ex.movementPattern == target.movementPattern
                         Row(
                             Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).background(TC.Slate800)
-                                .clickable { vm.substituteExercise(exerciseIndex, ex.id); onClose() }.padding(16.dp),
+                                .clickable { onSubstitute(ex.id); onClose() }.padding(16.dp),
                             horizontalArrangement = Arrangement.SpaceBetween,
                         ) {
                             Column {
@@ -158,9 +161,9 @@ fun ExerciseSubstituteDialog(vm: GymTrackViewModel, exerciseId: String, exercise
     // Seletor completo, para quando nenhuma sugestão serve.
     if (showPicker) {
         ExercisePickerDialog(
-            vm,
+            exercises,
             onSelect = { id, _ ->
-                if (id != exerciseId) vm.substituteExercise(exerciseIndex, id)
+                if (id != exerciseId) onSubstitute(id)
                 showPicker = false
                 onClose()
             },

@@ -2,6 +2,7 @@ package app.gabrielaraujo.gymtrack.domain
 
 import app.gabrielaraujo.gymtrack.data.WorkoutPlan
 import app.gabrielaraujo.gymtrack.data.WorkoutSession
+import app.gabrielaraujo.gymtrack.data.newId
 
 /**
  * Ficha ativa. Se duas chegarem ativas de aparelhos diferentes, vale a ativada por último
@@ -12,6 +13,20 @@ fun activePlanOf(plans: List<WorkoutPlan>): WorkoutPlan? {
     return live.filter { it.isActive }.maxWithOrNull(compareBy<WorkoutPlan>({ it.updatedAt }, { it.id }))
         ?: live.firstOrNull()
 }
+
+/** Cópia independente da ficha (ids novos), inativa e começando do primeiro dia. */
+fun duplicatePlan(plan: WorkoutPlan, now: Long): WorkoutPlan = plan.copy(
+    id = newId(),
+    name = "${plan.name} (cópia)",
+    currentDayIndex = 0,
+    createdAt = now,
+    updatedAt = now,
+    isActive = false,
+    ownerId = null,
+    dirty = false,
+    deleted = false,
+    days = plan.days.map { d -> d.copy(id = newId(), exercises = d.exercises.map { it.copy(id = newId()) }) },
+)
 
 /**
  * Índice do próximo treino sugerido da ficha: o dia seguinte ao do último treino concluído dela.

@@ -1,4 +1,4 @@
-package app.gabrielaraujo.gymtrack.ui.screens
+package app.gabrielaraujo.gymtrack.ui.account
 
 import android.content.Context
 import android.content.Intent
@@ -40,8 +40,8 @@ import androidx.health.connect.client.HealthConnectClient
 import androidx.health.connect.client.PermissionController
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import app.gabrielaraujo.gymtrack.GymTrackApplication
 import app.gabrielaraujo.gymtrack.health.ExportStatus
+import app.gabrielaraujo.gymtrack.health.HealthConnectManager
 import app.gabrielaraujo.gymtrack.health.SamsungHealth
 import app.gabrielaraujo.gymtrack.ui.components.BtnVariant
 import app.gabrielaraujo.gymtrack.ui.components.GymTrackButton
@@ -52,13 +52,12 @@ import kotlinx.coroutines.launch
 /**
  * Health Connect: envio dos treinos, importação dos dados do relógio e o passo a passo
  * para os treinos aparecerem no Samsung Health.
+ * @param onExportPrevious envia os treinos já concluídos; devolve quantos foram enviados.
  * @param onImportEnabled chamado quando a importação é ligada (para buscar os dados já existentes).
  */
 @Composable
-fun HealthConnectSection(onImportEnabled: () -> Unit) {
+fun HealthConnectSection(health: HealthConnectManager, onExportPrevious: suspend () -> Int, onImportEnabled: () -> Unit) {
     val context = LocalContext.current
-    val app = context.applicationContext as GymTrackApplication
-    val health = app.container.healthConnect
     val exportOn by health.exportEnabled.collectAsStateWithLifecycle()
     val importOn by health.importEnabled.collectAsStateWithLifecycle()
     val exportStatus by health.exportStatus.collectAsStateWithLifecycle()
@@ -135,7 +134,7 @@ fun HealthConnectSection(onImportEnabled: () -> Unit) {
                 "Enviar treinos anteriores",
                 onClick = {
                     scope.launch {
-                        val sent = health.exportAll(app.container.repositories.sessions.completedSessionsSnapshot())
+                        val sent = onExportPrevious()
                         val error = health.exportStatus.value?.error
                         toast(context, if (sent == 0 && error != null) "Falha ao enviar: $error" else "$sent treinos enviados ao Health Connect.")
                     }

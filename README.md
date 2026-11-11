@@ -171,17 +171,25 @@ app/schemas/     # schema do Room por versão
 
 Produção: https://repstack-rho.vercel.app — projeto `gbaraujos-projects/repstack`.
 
-A página é estática. O script abaixo monta `dist/` com `index.html` e somente os
-recursos públicos usados pela landing; o aplicativo e os documentos internos
-ficam fora da publicação.
+A página é estática. Cada push na branch **`repstack-rebrand`** do GitHub dispara
+um deploy de produção na Vercel. As demais branches não geram deploys deste site.
+O `vercel.json` executa `node scripts/build-landing.mjs` e publica somente `dist/`,
+com `index.html` e os recursos públicos da landing. O aplicativo Android não é
+compilado nesse processo.
+
+Para conferir os arquivos antes do push:
 
 ```powershell
 node scripts/build-landing.mjs
-npx.cmd --yes vercel@65.14.0 login
-npx.cmd --yes vercel@65.14.0 link --cwd dist --project repstack --scope gbaraujos-projects --yes
-npx.cmd --yes vercel@65.14.0 deploy --cwd dist --prod --yes
 ```
 
-Nos próximos deploys, execute novamente o script e o comando `deploy`. A pasta
-`dist/` e o vínculo local `.vercel/` são ignorados pelo Git.
-A publicação é feita pela CLI; pushes no GitHub não disparam deploy automático.
+Para fazer um deploy manual pela CLI, a partir da raiz do repositório:
+
+```powershell
+npx.cmd --yes vercel@65.14.0 login
+npx.cmd --yes vercel@65.14.0 link --project repstack --scope gbaraujos-projects --yes
+npx.cmd --yes vercel@65.14.0 deploy --prod --yes
+```
+
+A pasta `dist/` e o vínculo local `.vercel/` são ignorados pelo Git. O
+`.vercelignore` limita os arquivos enviados em deploys pela CLI.

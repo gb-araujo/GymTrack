@@ -23,18 +23,18 @@
     </queries>
 
     <application
-        android:name=".GymTrackApplication"
+        android:name=".RepStackApplication"
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
-        android:theme="@style/Theme.GymTrack">
+        android:theme="@style/Theme.RepStack">
         <activity
             android:name=".MainActivity"
             android:exported="true"
             android:launchMode="singleTop"
-            android:theme="@style/Theme.GymTrack"
+            android:theme="@style/Theme.RepStack"
             android:windowSoftInputMode="adjustResize">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -46,7 +46,7 @@
         <activity
             android:name=".health.HealthPermissionsRationaleActivity"
             android:exported="true"
-            android:theme="@style/Theme.GymTrack">
+            android:theme="@style/Theme.RepStack">
             <intent-filter>
                 <action android:name="androidx.health.ACTION_SHOW_PERMISSIONS_RATIONALE" />
             </intent-filter>
@@ -81,7 +81,7 @@
             </intent-filter>
             <meta-data
                 android:name="android.appwidget.provider"
-                android:resource="@xml/gymtrack_widget_info" />
+                android:resource="@xml/repstack_widget_info" />
         </receiver>
     </application>
 

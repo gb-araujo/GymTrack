@@ -114,7 +114,7 @@ class RestTimerService : Service() {
     private fun acquireWakeLock(timeoutMs: Long) {
         releaseWakeLock()
         val pm = getSystemService(Context.POWER_SERVICE) as PowerManager
-        wakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "GymTrack:rest").apply {
+        wakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "RepStack:rest").apply {
             setReferenceCounted(false)
             acquire(timeoutMs)
         }

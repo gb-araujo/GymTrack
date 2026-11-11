@@ -39,11 +39,11 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.gabrielaraujo.gymtrack.data.Goal
 import app.gabrielaraujo.gymtrack.domain.bodyWeightProgress
 import app.gabrielaraujo.gymtrack.domain.weightAt
-import app.gabrielaraujo.gymtrack.ui.GymTrackViewModel
+import app.gabrielaraujo.gymtrack.ui.RepStackViewModel
 import app.gabrielaraujo.gymtrack.ui.components.BtnVariant
 import app.gabrielaraujo.gymtrack.ui.components.NumberStepper
 import app.gabrielaraujo.gymtrack.ui.components.ProgressBar
-import app.gabrielaraujo.gymtrack.ui.components.GymTrackButton
+import app.gabrielaraujo.gymtrack.ui.components.RepStackButton
 import app.gabrielaraujo.gymtrack.ui.formatWeight
 import app.gabrielaraujo.gymtrack.data.newId
 import app.gabrielaraujo.gymtrack.ui.theme.TC
@@ -61,7 +61,7 @@ private val goalTypes = listOf(
 )
 
 @Composable
-fun GoalsScreen(vm: GymTrackViewModel) {
+fun GoalsScreen(vm: RepStackViewModel) {
     val state by vm.state.collectAsStateWithLifecycle()
     var showNew by remember { mutableStateOf(false) }
     // Peso corporal vem do Health Connect (balança, relógio ou Samsung Health), quando a importação está ligada.
@@ -96,7 +96,7 @@ fun GoalsScreen(vm: GymTrackViewModel) {
         item {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                 Text("Metas", color = TC.White, fontSize = 24.sp, fontWeight = FontWeight.Bold)
-                Icon(Icons.Default.Add, "Nova", tint = TC.White, modifier = Modifier.size(38.dp).clip(RoundedCornerShape(12.dp)).background(TC.Indigo600).clickable { showNew = true }.padding(9.dp))
+                Icon(Icons.Default.Add, "Nova", tint = TC.OnLime, modifier = Modifier.size(38.dp).clip(RoundedCornerShape(12.dp)).background(TC.Lime).clickable { showNew = true }.padding(9.dp))
             }
         }
 
@@ -108,7 +108,7 @@ fun GoalsScreen(vm: GymTrackViewModel) {
                     Text("Nenhuma meta criada", color = TC.Slate400)
                     Text("Defina metas para manter o foco", color = TC.Slate600, fontSize = 13.sp)
                     Spacer(Modifier.height(16.dp))
-                    GymTrackButton("Criar meta", onClick = { showNew = true })
+                    RepStackButton("Criar meta", onClick = { showNew = true })
                 }
             }
         } else {
@@ -137,7 +137,7 @@ fun GoalsScreen(vm: GymTrackViewModel) {
                         }
                     }
                     Spacer(Modifier.height(10.dp))
-                    ProgressBar(fraction = pct / 100f, color = if (done) TC.Yellow500 else TC.Indigo500)
+                    ProgressBar(fraction = pct / 100f, color = if (done) TC.Yellow500 else TC.Lime)
                     Text("$pct%${if (done) " — Concluída! 🎉" else ""}", color = if (done) TC.Yellow400 else TC.Slate500, fontSize = 12.sp, modifier = Modifier.fillMaxWidth().padding(top = 4.dp), textAlign = androidx.compose.ui.text.style.TextAlign.End)
                     if (goal.type == "body_weight" && latestWeight == null) {
                         Text("Ligue \"Importar do relógio\" na tela de conta para acompanhar seu peso pelo Health Connect.", color = TC.Slate600, fontSize = 11.sp)
@@ -172,7 +172,7 @@ private fun NewGoalDialog(onCreate: (String, String, Double) -> Unit, onClose: (
             Text("Título", color = TC.Slate500, fontSize = 12.sp)
             Box(Modifier.fillMaxWidth().padding(top = 4.dp).clip(RoundedCornerShape(12.dp)).background(TC.Slate800).padding(horizontal = 12.dp, vertical = 10.dp)) {
                 if (title.isEmpty()) Text("Ex: Chegar a 100 treinos", color = TC.Slate500, fontSize = 14.sp)
-                BasicTextField(title, { title = it }, textStyle = TextStyle(color = TC.White, fontSize = 14.sp), cursorBrush = androidx.compose.ui.graphics.SolidColor(TC.Indigo400), modifier = Modifier.fillMaxWidth())
+                BasicTextField(title, { title = it }, textStyle = TextStyle(color = TC.White, fontSize = 14.sp), cursorBrush = androidx.compose.ui.graphics.SolidColor(TC.LimeSoft), modifier = Modifier.fillMaxWidth())
             }
             Spacer(Modifier.height(12.dp))
             Text("Tipo", color = TC.Slate500, fontSize = 12.sp)
@@ -181,8 +181,8 @@ private fun NewGoalDialog(onCreate: (String, String, Double) -> Unit, onClose: (
                 val sel = gt.value == type
                 Text(
                     gt.label,
-                    color = if (sel) TC.White else TC.Slate300, fontSize = 14.sp, fontWeight = if (sel) FontWeight.SemiBold else FontWeight.Normal,
-                    modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp).clip(RoundedCornerShape(10.dp)).background(if (sel) TC.Indigo600 else TC.Slate800).clickable { type = gt.value }.padding(horizontal = 12.dp, vertical = 8.dp),
+                    color = if (sel) TC.OnLime else TC.Slate300, fontSize = 14.sp, fontWeight = if (sel) FontWeight.SemiBold else FontWeight.Normal,
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp).clip(RoundedCornerShape(10.dp)).background(if (sel) TC.Lime else TC.Slate800).clickable { type = gt.value }.padding(horizontal = 12.dp, vertical = 8.dp),
                 )
             }
             Spacer(Modifier.height(12.dp))
@@ -191,8 +191,8 @@ private fun NewGoalDialog(onCreate: (String, String, Double) -> Unit, onClose: (
             NumberStepper(target, { target = it }, step = 1.0, min = 1.0, max = 100000.0, isInt = true)
             Spacer(Modifier.height(16.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                GymTrackButton("Cancelar", onClick = onClose, variant = BtnVariant.Ghost, modifier = Modifier.weight(1f))
-                GymTrackButton("Criar", onClick = { if (title.isNotBlank()) onCreate(title.trim(), type, target) }, modifier = Modifier.weight(1f))
+                RepStackButton("Cancelar", onClick = onClose, variant = BtnVariant.Ghost, modifier = Modifier.weight(1f))
+                RepStackButton("Criar", onClick = { if (title.isNotBlank()) onCreate(title.trim(), type, target) }, modifier = Modifier.weight(1f))
             }
         }
     }

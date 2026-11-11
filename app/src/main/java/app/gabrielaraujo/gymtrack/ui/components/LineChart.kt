@@ -25,7 +25,7 @@ fun LineChart(
     values: List<Float>,
     modifier: Modifier = Modifier,
     height: Dp = 160.dp,
-    color: Color = TC.Indigo500,
+    color: Color = TC.Lime,
     baseline: Float = 0f,
 ) {
     Column(modifier.fillMaxWidth()) {

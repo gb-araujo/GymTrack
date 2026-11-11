@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Símbolo RepStack (visual/repstack_brand_package/logo/repstack-symbol.svg), centralizado na zona segura de 66dp. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <group
+        android:scaleX="0.54"
+        android:scaleY="0.6"
+        android:translateX="22.95"
+        android:translateY="24">
+        <path
+            android:fillColor="#A3FF12"
+            android:pathData="M 20,12 H 77 Q 83,12 86,18 L 98,38 Q 101,44 95,49 L 82,59 H 96 L 113,88 H 83 L 66,60 H 46 L 30,88 H 2 L 22,51 H 65 L 76,43 H 32 Z" />
+    </group>
+</vector>

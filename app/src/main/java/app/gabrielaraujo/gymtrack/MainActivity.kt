@@ -5,21 +5,21 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.lifecycle.viewmodel.compose.viewModel
-import app.gabrielaraujo.gymtrack.ui.GymTrackApp
-import app.gabrielaraujo.gymtrack.ui.GymTrackViewModel
-import app.gabrielaraujo.gymtrack.ui.theme.GymTrackTheme
+import app.gabrielaraujo.gymtrack.ui.RepStackApp
+import app.gabrielaraujo.gymtrack.ui.RepStackViewModel
+import app.gabrielaraujo.gymtrack.ui.theme.RepStackTheme
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
-        val app = application as GymTrackApplication
+        val app = application as RepStackApplication
         setContent {
-            GymTrackTheme {
-                val vm: GymTrackViewModel = viewModel(
-                    factory = GymTrackViewModel.factory(app.repository, app.authManager, app.syncEngine, app.restTimerAlerts, app.healthConnect, app.healthConnect),
+            RepStackTheme {
+                val vm: RepStackViewModel = viewModel(
+                    factory = RepStackViewModel.factory(app.repository, app.authManager, app.syncEngine, app.restTimerAlerts, app.healthConnect, app.healthConnect),
                 )
-                GymTrackApp(vm)
+                RepStackApp(vm)
             }
         }
     }

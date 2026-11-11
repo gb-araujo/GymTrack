@@ -6,7 +6,7 @@ import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import app.gabrielaraujo.gymtrack.auth.AppUser
 import app.gabrielaraujo.gymtrack.auth.AuthGateway
-import app.gabrielaraujo.gymtrack.data.GymTrackDatabase
+import app.gabrielaraujo.gymtrack.data.RepStackDatabase
 import app.gabrielaraujo.gymtrack.data.WorkoutSession
 import app.gabrielaraujo.gymtrack.domain.BodyWeightEntry
 import app.gabrielaraujo.gymtrack.domain.WorkoutHealthMetrics
@@ -59,5 +59,5 @@ class TestClock(var now: Long = System.currentTimeMillis()) : () -> Long {
     fun advanceDays(days: Long) { now += days * 86_400_000 }
 }
 
-fun inMemoryDb(): GymTrackDatabase =
-    Room.inMemoryDatabaseBuilder(ApplicationProvider.getApplicationContext<Context>(), GymTrackDatabase::class.java).build()
+fun inMemoryDb(): RepStackDatabase =
+    Room.inMemoryDatabaseBuilder(ApplicationProvider.getApplicationContext<Context>(), RepStackDatabase::class.java).build()

@@ -2,7 +2,7 @@ package app.gabrielaraujo.gymtrack.sync
 
 import app.gabrielaraujo.gymtrack.data.Exercise
 import app.gabrielaraujo.gymtrack.data.Goal
-import app.gabrielaraujo.gymtrack.data.GymTrackDao
+import app.gabrielaraujo.gymtrack.data.RepStackDao
 import app.gabrielaraujo.gymtrack.data.PersonalRecord
 import app.gabrielaraujo.gymtrack.data.SyncMeta
 import app.gabrielaraujo.gymtrack.data.Syncable
@@ -38,7 +38,7 @@ import java.util.Date
  *   relógio de cada aparelho, então uma mudança feita num celular com hora atrasada não é perdida.
  */
 class SyncEngine(
-    private val dao: GymTrackDao,
+    private val dao: RepStackDao,
     private val clock: () -> Long = System::currentTimeMillis,
 ) : CloudSync {
     private val db: FirebaseFirestore by lazy { Firebase.firestore }

@@ -38,14 +38,14 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.gabrielaraujo.gymtrack.data.Exercise
-import app.gabrielaraujo.gymtrack.ui.GymTrackViewModel
+import app.gabrielaraujo.gymtrack.ui.RepStackViewModel
 import app.gabrielaraujo.gymtrack.data.getSuggestions
 import app.gabrielaraujo.gymtrack.ui.theme.TC
 
 private val muscles = listOf("Todos", "Peito", "Costas", "Perna", "Ombro", "Bíceps", "Tríceps", "Abdômen")
 
 @Composable
-fun ExercisePickerDialog(vm: GymTrackViewModel, onSelect: (String, String) -> Unit, onClose: () -> Unit) {
+fun ExercisePickerDialog(vm: RepStackViewModel, onSelect: (String, String) -> Unit, onClose: () -> Unit) {
     val state by vm.state.collectAsStateWithLifecycle()
     var search by remember { mutableStateOf("") }
     var muscle by remember { mutableStateOf("Todos") }
@@ -71,8 +71,8 @@ fun ExercisePickerDialog(vm: GymTrackViewModel, onSelect: (String, String) -> Un
                 items(muscles) { m ->
                     val sel = m == muscle
                     Text(
-                        m, color = if (sel) TC.White else TC.Slate400, fontSize = 12.sp, fontWeight = FontWeight.Medium,
-                        modifier = Modifier.clip(RoundedCornerShape(20.dp)).background(if (sel) TC.Indigo600 else TC.Slate800).clickable { muscle = m }.padding(horizontal = 12.dp, vertical = 6.dp),
+                        m, color = if (sel) TC.OnLime else TC.Slate400, fontSize = 12.sp, fontWeight = FontWeight.Medium,
+                        modifier = Modifier.clip(RoundedCornerShape(20.dp)).background(if (sel) TC.Lime else TC.Slate800).clickable { muscle = m }.padding(horizontal = 12.dp, vertical = 6.dp),
                     )
                 }
             }
@@ -99,7 +99,7 @@ fun ExercisePickerDialog(vm: GymTrackViewModel, onSelect: (String, String) -> Un
 }
 
 @Composable
-fun ExerciseSubstituteDialog(vm: GymTrackViewModel, exerciseId: String, exerciseName: String, exerciseIndex: Int, onClose: () -> Unit) {
+fun ExerciseSubstituteDialog(vm: RepStackViewModel, exerciseId: String, exerciseName: String, exerciseIndex: Int, onClose: () -> Unit) {
     val state by vm.state.collectAsStateWithLifecycle()
     val suggestions = getSuggestions(exerciseId, state.exercises)
     val target = state.exercises.find { it.id == exerciseId }
@@ -159,7 +159,7 @@ fun SearchField(value: String, onValueChange: (String) -> Unit, modifier: Modifi
             BasicTextField(
                 value = value, onValueChange = onValueChange,
                 textStyle = TextStyle(color = TC.White, fontSize = 14.sp),
-                cursorBrush = androidx.compose.ui.graphics.SolidColor(TC.Indigo400),
+                cursorBrush = androidx.compose.ui.graphics.SolidColor(TC.LimeSoft),
                 modifier = Modifier.fillMaxWidth(),
             )
         }

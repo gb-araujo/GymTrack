@@ -21,3 +21,7 @@ build/
 *.keystore
 google-services.json
 keystore.properties
+
+# Landing / Vercel
+/dist/
+.vercel/

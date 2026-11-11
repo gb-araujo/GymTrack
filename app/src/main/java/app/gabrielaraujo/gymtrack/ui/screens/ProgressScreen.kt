@@ -36,7 +36,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.gabrielaraujo.gymtrack.domain.BodyWeightEntry
-import app.gabrielaraujo.gymtrack.ui.GymTrackViewModel
+import app.gabrielaraujo.gymtrack.ui.RepStackViewModel
 import app.gabrielaraujo.gymtrack.ui.components.LineChart
 import app.gabrielaraujo.gymtrack.ui.formatBodyWeight
 import app.gabrielaraujo.gymtrack.ui.formatDate
@@ -52,7 +52,7 @@ import kotlin.math.roundToInt
 private enum class ProgressTab { RECORDS, VOLUME, FREQUENCY, WEIGHT }
 
 @Composable
-fun ProgressScreen(vm: GymTrackViewModel) {
+fun ProgressScreen(vm: RepStackViewModel) {
     val state by vm.state.collectAsStateWithLifecycle()
     var tab by remember { mutableStateOf(ProgressTab.RECORDS) }
     var selectedExercise by remember { mutableStateOf<String?>(null) }
@@ -195,12 +195,12 @@ private fun Summary(label: String, value: String, modifier: Modifier = Modifier)
 @Composable
 private fun TabBtn(label: String, icon: ImageVector, selected: Boolean, modifier: Modifier = Modifier, onClick: () -> Unit) {
     Row(
-        modifier.clip(RoundedCornerShape(8.dp)).background(if (selected) TC.Indigo600 else androidx.compose.ui.graphics.Color.Transparent).clickable { onClick() }.padding(vertical = 8.dp),
+        modifier.clip(RoundedCornerShape(8.dp)).background(if (selected) TC.Lime else androidx.compose.ui.graphics.Color.Transparent).clickable { onClick() }.padding(vertical = 8.dp),
         horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically,
     ) {
-        Icon(icon, null, tint = if (selected) TC.White else TC.Slate400, modifier = Modifier.size(13.dp))
+        Icon(icon, null, tint = if (selected) TC.OnLime else TC.Slate400, modifier = Modifier.size(13.dp))
         Spacer(Modifier.size(4.dp))
-        Text(label, color = if (selected) TC.White else TC.Slate400, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+        Text(label, color = if (selected) TC.OnLime else TC.Slate400, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
     }
 }
 

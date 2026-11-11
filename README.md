@@ -166,3 +166,22 @@ app/src/main/java/app/gabrielaraujo/gymtrack/
 app/src/test/    # testes JUnit (domain) e Robolectric (ViewModel + Room em memória)
 app/schemas/     # schema do Room por versão
 ```
+
+## Publicar a landing na Vercel
+
+Produção: https://repstack-rho.vercel.app — projeto `gbaraujos-projects/repstack`.
+
+A página é estática. O script abaixo monta `dist/` com `index.html` e somente os
+recursos públicos usados pela landing; o aplicativo e os documentos internos
+ficam fora da publicação.
+
+```powershell
+node scripts/build-landing.mjs
+npx.cmd --yes vercel@65.14.0 login
+npx.cmd --yes vercel@65.14.0 link --cwd dist --project repstack --scope gbaraujos-projects --yes
+npx.cmd --yes vercel@65.14.0 deploy --cwd dist --prod --yes
+```
+
+Nos próximos deploys, execute novamente o script e o comando `deploy`. A pasta
+`dist/` e o vínculo local `.vercel/` são ignorados pelo Git.
+A publicação é feita pela CLI; pushes no GitHub não disparam deploy automático.

@@ -40,9 +40,9 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.gabrielaraujo.gymtrack.data.SessionExercise
 import app.gabrielaraujo.gymtrack.data.SetRecord
 import app.gabrielaraujo.gymtrack.data.WorkoutSession
-import app.gabrielaraujo.gymtrack.ui.GymTrackViewModel
+import app.gabrielaraujo.gymtrack.ui.RepStackViewModel
 import app.gabrielaraujo.gymtrack.ui.components.BtnVariant
-import app.gabrielaraujo.gymtrack.ui.components.GymTrackButton
+import app.gabrielaraujo.gymtrack.ui.components.RepStackButton
 import app.gabrielaraujo.gymtrack.ui.components.NumberStepper
 import app.gabrielaraujo.gymtrack.ui.withAddedSet
 import app.gabrielaraujo.gymtrack.ui.formatDuration
@@ -54,7 +54,7 @@ import app.gabrielaraujo.gymtrack.ui.theme.TC
 import kotlin.math.roundToInt
 
 @Composable
-fun HistoryDetailScreen(vm: GymTrackViewModel, sessionId: String, onBack: () -> Unit) {
+fun HistoryDetailScreen(vm: RepStackViewModel, sessionId: String, onBack: () -> Unit) {
     val state by vm.state.collectAsStateWithLifecycle()
     val session = state.sessions.find { it.id == sessionId }
     var draft by remember(sessionId) { mutableStateOf<WorkoutSession?>(null) }
@@ -167,8 +167,8 @@ fun HistoryDetailScreen(vm: GymTrackViewModel, sessionId: String, onBack: () -> 
                 Text("Excluir treino?", color = TC.White, fontSize = 18.sp, fontWeight = FontWeight.Bold)
                 Text("O treino sai do histórico e os recordes pessoais são recalculados. Não dá para desfazer.", color = TC.Slate400, fontSize = 14.sp, modifier = Modifier.padding(vertical = 12.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    GymTrackButton("Cancelar", onClick = { confirmDelete = false }, variant = BtnVariant.Ghost, modifier = Modifier.weight(1f))
-                    GymTrackButton("Excluir", onClick = { confirmDelete = false; vm.deleteCompletedSession(sessionId); onBack() }, variant = BtnVariant.Danger, modifier = Modifier.weight(1f))
+                    RepStackButton("Cancelar", onClick = { confirmDelete = false }, variant = BtnVariant.Ghost, modifier = Modifier.weight(1f))
+                    RepStackButton("Excluir", onClick = { confirmDelete = false; vm.deleteCompletedSession(sessionId); onBack() }, variant = BtnVariant.Danger, modifier = Modifier.weight(1f))
                 }
             }
         }
@@ -241,7 +241,7 @@ private fun SessionEditor(
                             }
                         }
                         Text(
-                            "+ Adicionar série", color = TC.Indigo400, fontSize = 13.sp,
+                            "+ Adicionar série", color = TC.LimeSoft, fontSize = 13.sp,
                             modifier = Modifier.clip(RoundedCornerShape(8.dp))
                                 .clickable { updateExercise(exIndex) { e -> e.withAddedSet(completed = true) } }
                                 .padding(vertical = 6.dp),
@@ -251,8 +251,8 @@ private fun SessionEditor(
             }
         }
         Row(Modifier.fillMaxWidth().navigationBarsPadding().padding(16.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            GymTrackButton("Cancelar", onClick = onCancel, variant = BtnVariant.Ghost, modifier = Modifier.weight(1f))
-            GymTrackButton("Salvar", onClick = onSave, modifier = Modifier.weight(1f))
+            RepStackButton("Cancelar", onClick = onCancel, variant = BtnVariant.Ghost, modifier = Modifier.weight(1f))
+            RepStackButton("Salvar", onClick = onSave, modifier = Modifier.weight(1f))
         }
     }
 }

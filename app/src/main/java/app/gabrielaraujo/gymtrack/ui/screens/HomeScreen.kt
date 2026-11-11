@@ -40,11 +40,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import app.gabrielaraujo.gymtrack.ui.GymTrackViewModel
+import app.gabrielaraujo.gymtrack.ui.RepStackViewModel
 import app.gabrielaraujo.gymtrack.ui.components.BtnVariant
 import app.gabrielaraujo.gymtrack.ui.components.SectionLabel
-import app.gabrielaraujo.gymtrack.ui.components.GymTrackButton
-import app.gabrielaraujo.gymtrack.ui.components.GymTrackCard
+import app.gabrielaraujo.gymtrack.ui.components.RepStackButton
+import app.gabrielaraujo.gymtrack.ui.components.RepStackCard
 import app.gabrielaraujo.gymtrack.sync.SyncStatus
 import app.gabrielaraujo.gymtrack.ui.components.StreakBadge
 import app.gabrielaraujo.gymtrack.ui.components.StreakBar
@@ -59,7 +59,7 @@ import java.util.Calendar
 
 @Composable
 fun HomeScreen(
-    vm: GymTrackViewModel,
+    vm: RepStackViewModel,
     onStart: () -> Unit,
     onGoPlans: () -> Unit,
     onGoProgress: () -> Unit,
@@ -96,7 +96,7 @@ fun HomeScreen(
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                 Column {
                     Text("Bem-vindo de volta", color = TC.Slate400, fontSize = 14.sp)
-                    Text("GymTrack", color = TC.White, fontSize = 26.sp, fontWeight = FontWeight.Bold)
+                    Text("RepStack", color = TC.White, fontSize = 26.sp, fontWeight = FontWeight.Bold)
                 }
                 StreakBadge(state.streak)
             }
@@ -106,10 +106,10 @@ fun HomeScreen(
 
         item {
             if (nextDay != null && plan != null) {
-                GymTrackCard {
+                RepStackCard {
                     Column {
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                            SectionLabel("Próximo Treino", color = TC.Indigo400)
+                            SectionLabel("Próximo Treino", color = TC.LimeSoft)
                             nextDay.estimatedMinutes?.let { Text("~$it min", color = TC.Slate500, fontSize = 12.sp) }
                         }
                         Spacer(Modifier.height(6.dp))
@@ -119,7 +119,7 @@ fun HomeScreen(
                         }
                         Text("${nextDay.exercises.size} exercícios · ${plan.name}", color = TC.Slate500, fontSize = 14.sp)
                         Spacer(Modifier.height(16.dp))
-                        GymTrackButton(
+                        RepStackButton(
                             "Iniciar Treino",
                             onClick = { vm.startSession(onStarted = onStart) },
                             modifier = Modifier.fillMaxWidth(),
@@ -129,7 +129,7 @@ fun HomeScreen(
                             Spacer(Modifier.height(8.dp))
                             Text(
                                 "Escolher outro treino",
-                                color = TC.Indigo400, fontSize = 13.sp, fontWeight = FontWeight.Medium,
+                                color = TC.LimeSoft, fontSize = 13.sp, fontWeight = FontWeight.Medium,
                                 textAlign = androidx.compose.ui.text.style.TextAlign.Center,
                                 modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp)).clickable { showDayPicker = true }.padding(vertical = 8.dp),
                             )
@@ -137,11 +137,11 @@ fun HomeScreen(
                     }
                 }
             } else {
-                GymTrackCard {
+                RepStackCard {
                     Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
                         Text("Nenhuma ficha ativa", color = TC.Slate400)
                         Spacer(Modifier.height(12.dp))
-                        GymTrackButton("Criar Ficha", onClick = onGoPlans)
+                        RepStackButton("Criar Ficha", onClick = onGoPlans)
                     }
                 }
             }
@@ -149,7 +149,7 @@ fun HomeScreen(
 
         if (lastSession != null) {
             item {
-                GymTrackCard(onClick = { onOpenSession(lastSession.id) }) {
+                RepStackCard(onClick = { onOpenSession(lastSession.id) }) {
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                         Column(Modifier.weight(1f)) {
                             SectionLabel("Último Treino", color = TC.Slate500)
@@ -182,11 +182,11 @@ fun HomeScreen(
                         Icon(Icons.Default.EmojiEvents, null, tint = TC.Yellow400, modifier = Modifier.size(14.dp))
                         SectionLabel("Recordes Pessoais")
                     }
-                    Text("Ver todos", color = TC.Indigo400, fontSize = 12.sp, modifier = Modifier.clip(RoundedCornerShape(8.dp)).clickable { onGoProgress() }.padding(4.dp))
+                    Text("Ver todos", color = TC.LimeSoft, fontSize = 12.sp, modifier = Modifier.clip(RoundedCornerShape(8.dp)).clickable { onGoProgress() }.padding(4.dp))
                 }
             }
             items(prs.toList()) { pr ->
-                GymTrackCard {
+                RepStackCard {
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                         Column {
                             Text(pr.exerciseName, color = TC.White, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
@@ -203,7 +203,7 @@ fun HomeScreen(
 
         if (state.sessions.isNotEmpty()) {
             item {
-                GymTrackCard {
+                RepStackCard {
                     Column {
                         Text("Estatísticas", color = TC.Slate300, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
                         Spacer(Modifier.height(12.dp))
@@ -245,7 +245,7 @@ private fun DayPickerDialog(
                 val isNext = index == plan.currentDayIndex % plan.days.size
                 Row(
                     Modifier.fillMaxWidth().padding(vertical = 3.dp).clip(RoundedCornerShape(12.dp))
-                        .background(if (isNext) TC.Indigo600.copy(alpha = 0.25f) else TC.Slate800)
+                        .background(if (isNext) TC.Lime.copy(alpha = 0.25f) else TC.Slate800)
                         .clickable { onPick(index) }.padding(horizontal = 14.dp, vertical = 12.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -257,7 +257,7 @@ private fun DayPickerDialog(
                             Text("${day.exercises.size} exercícios", color = TC.Slate500, fontSize = 12.sp)
                         }
                     }
-                    if (isNext) Text("PRÓXIMO", color = TC.Indigo400, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                    if (isNext) Text("PRÓXIMO", color = TC.LimeSoft, fontSize = 10.sp, fontWeight = FontWeight.Bold)
                 }
             }
         }
@@ -265,7 +265,7 @@ private fun DayPickerDialog(
 }
 
 @Composable
-private fun AccountDialog(vm: GymTrackViewModel, onClose: () -> Unit) {
+private fun AccountDialog(vm: RepStackViewModel, onClose: () -> Unit) {
     val state by vm.state.collectAsStateWithLifecycle()
     val user by vm.user.collectAsStateWithLifecycle()
     val signingIn by vm.signingIn.collectAsStateWithLifecycle()
@@ -316,14 +316,14 @@ private fun AccountDialog(vm: GymTrackViewModel, onClose: () -> Unit) {
                     )
                 }
                 Spacer(Modifier.height(8.dp))
-                GymTrackButton(
+                RepStackButton(
                     "Sincronizar agora",
                     onClick = { vm.syncNow() },
                     variant = BtnVariant.Ghost,
                     modifier = Modifier.fillMaxWidth(),
                 )
                 Spacer(Modifier.height(8.dp))
-                GymTrackButton(
+                RepStackButton(
                     "Reenviar tudo para a nuvem",
                     onClick = {
                         vm.forceFullResync()
@@ -333,7 +333,7 @@ private fun AccountDialog(vm: GymTrackViewModel, onClose: () -> Unit) {
                     modifier = Modifier.fillMaxWidth(),
                 )
                 Spacer(Modifier.height(8.dp))
-                GymTrackButton("Sair", onClick = { vm.signOut(); onClose() }, variant = BtnVariant.Ghost, modifier = Modifier.fillMaxWidth())
+                RepStackButton("Sair", onClick = { vm.signOut(); onClose() }, variant = BtnVariant.Ghost, modifier = Modifier.fillMaxWidth())
             } else {
                 Text("Entre com o Google para sincronizar seus treinos na nuvem e acessá-los em outros dispositivos.", color = TC.Slate400, fontSize = 14.sp)
                 if (authError != null) {
@@ -341,7 +341,7 @@ private fun AccountDialog(vm: GymTrackViewModel, onClose: () -> Unit) {
                     Text(authError ?: "", color = TC.Red400, fontSize = 12.sp)
                 }
                 Spacer(Modifier.height(16.dp))
-                GymTrackButton(
+                RepStackButton(
                     if (signingIn) "Entrando..." else "Entrar com Google",
                     onClick = { context.findActivity()?.let { vm.signIn(it) } },
                     modifier = Modifier.fillMaxWidth(),
@@ -356,14 +356,14 @@ private fun AccountDialog(vm: GymTrackViewModel, onClose: () -> Unit) {
             Spacer(Modifier.height(16.dp))
             Text("Backup", color = TC.Slate500, fontSize = 12.sp)
             Spacer(Modifier.height(6.dp))
-            GymTrackButton(
+            RepStackButton(
                 "Exportar backup (JSON)",
-                onClick = { exportLauncher.launch("gymtrack-backup-${formatDate(System.currentTimeMillis(), "yyyy-MM-dd")}.json") },
+                onClick = { exportLauncher.launch("repstack-backup-${formatDate(System.currentTimeMillis(), "yyyy-MM-dd")}.json") },
                 variant = BtnVariant.Ghost,
                 modifier = Modifier.fillMaxWidth(),
             )
             Spacer(Modifier.height(6.dp))
-            GymTrackButton(
+            RepStackButton(
                 "Importar backup (JSON)",
                 onClick = { importLauncher.launch(arrayOf("application/json", "text/plain", "*/*")) },
                 variant = BtnVariant.Ghost,

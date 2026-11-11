@@ -41,13 +41,13 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.gabrielaraujo.gymtrack.data.WorkoutDay
 import app.gabrielaraujo.gymtrack.data.WorkoutExercise
 import app.gabrielaraujo.gymtrack.data.WorkoutPlan
-import app.gabrielaraujo.gymtrack.ui.GymTrackViewModel
+import app.gabrielaraujo.gymtrack.ui.RepStackViewModel
 import app.gabrielaraujo.gymtrack.ui.components.NumberStepper
 import app.gabrielaraujo.gymtrack.data.newId
 import app.gabrielaraujo.gymtrack.ui.theme.TC
 
 @Composable
-fun PlanEditorScreen(vm: GymTrackViewModel, planId: String, onDone: () -> Unit) {
+fun PlanEditorScreen(vm: RepStackViewModel, planId: String, onDone: () -> Unit) {
     val state by vm.state.collectAsStateWithLifecycle()
     val now = System.currentTimeMillis()
     val initial = remember(planId) {
@@ -68,7 +68,7 @@ fun PlanEditorScreen(vm: GymTrackViewModel, planId: String, onDone: () -> Unit) 
         Row(Modifier.fillMaxWidth().statusBarsPadding().padding(horizontal = 16.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Icon(Icons.AutoMirrored.Filled.ArrowBack, "Voltar", tint = TC.Slate400, modifier = Modifier.clip(RoundedCornerShape(10.dp)).clickable { onDone() }.padding(6.dp))
             Text("Editor de Ficha", color = TC.White, fontSize = 18.sp, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
-            Text("Salvar", color = TC.White, fontSize = 14.sp, fontWeight = FontWeight.Bold, modifier = Modifier.clip(RoundedCornerShape(12.dp)).background(TC.Indigo600).clickable { vm.savePlan(plan); onDone() }.padding(horizontal = 16.dp, vertical = 8.dp))
+            Text("Salvar", color = TC.OnLime, fontSize = 14.sp, fontWeight = FontWeight.Bold, modifier = Modifier.clip(RoundedCornerShape(12.dp)).background(TC.Lime).clickable { vm.savePlan(plan); onDone() }.padding(horizontal = 16.dp, vertical = 8.dp))
         }
 
         LazyColumn(Modifier.fillMaxWidth().weight(1f).padding(horizontal = 16.dp), contentPadding = androidx.compose.foundation.layout.PaddingValues(vertical = 16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
@@ -152,7 +152,7 @@ private fun EditField(value: String, onChange: (String) -> Unit, placeholder: St
         BasicTextField(
             value, onChange,
             textStyle = TextStyle(color = TC.White, fontSize = if (big) 18.sp else 14.sp, fontWeight = if (big) FontWeight.Bold else FontWeight.Normal, textAlign = if (center) TextAlign.Center else TextAlign.Start),
-            cursorBrush = androidx.compose.ui.graphics.SolidColor(TC.Indigo400),
+            cursorBrush = androidx.compose.ui.graphics.SolidColor(TC.LimeSoft),
             modifier = Modifier.fillMaxWidth(),
         )
     }

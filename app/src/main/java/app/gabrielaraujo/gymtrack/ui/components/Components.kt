@@ -41,7 +41,7 @@ import app.gabrielaraujo.gymtrack.ui.theme.TC
 
 /** Cartão escuro reutilizável (equiv. ao <Card> do web). */
 @Composable
-fun GymTrackCard(
+fun RepStackCard(
     modifier: Modifier = Modifier,
     onClick: (() -> Unit)? = null,
     content: @Composable () -> Unit,
@@ -58,7 +58,7 @@ fun GymTrackCard(
 enum class BtnVariant { Primary, Success, Danger, Ghost }
 
 @Composable
-fun GymTrackButton(
+fun RepStackButton(
     text: String,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
@@ -67,13 +67,14 @@ fun GymTrackButton(
     leading: @Composable (() -> Unit)? = null,
 ) {
     val bg = when (variant) {
-        BtnVariant.Primary -> TC.Indigo600
+        BtnVariant.Primary -> TC.Lime
         BtnVariant.Success -> TC.Emerald600
         BtnVariant.Danger -> TC.Red600
         BtnVariant.Ghost -> Color.Transparent
     }
     val fg = when (variant) {
         BtnVariant.Ghost -> TC.Slate300
+        BtnVariant.Primary -> TC.OnLime
         else -> TC.White
     }
     var m = modifier
@@ -122,7 +123,7 @@ fun NumberStepper(
             },
             singleLine = true,
             textStyle = TextStyle(color = TC.White, fontWeight = FontWeight.Bold, fontSize = 16.sp, textAlign = TextAlign.Center),
-            cursorBrush = SolidColor(TC.Indigo400),
+            cursorBrush = SolidColor(TC.LimeSoft),
             keyboardOptions = KeyboardOptions(
                 keyboardType = if (isInt) KeyboardType.Number else KeyboardType.Decimal,
             ),
@@ -147,7 +148,7 @@ private fun StepBtn(icon: androidx.compose.ui.graphics.vector.ImageVector, onCli
 
 /** Barra de progresso fina. */
 @Composable
-fun ProgressBar(fraction: Float, modifier: Modifier = Modifier, color: Color = TC.Indigo500, track: Color = TC.Slate800) {
+fun ProgressBar(fraction: Float, modifier: Modifier = Modifier, color: Color = TC.Lime, track: Color = TC.Slate800) {
     Box(
         modifier
             .fillMaxWidth()

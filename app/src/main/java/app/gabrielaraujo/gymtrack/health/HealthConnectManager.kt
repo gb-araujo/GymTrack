@@ -32,7 +32,7 @@ import java.time.ZoneId
 data class ExportStatus(val at: Long, val count: Int, val error: String? = null)
 
 /**
- * Integração com o Health Connect, por onde o GymTrack troca dados com o Samsung Health, Google Fit etc.
+ * Integração com o Health Connect, por onde o RepStack troca dados com o Samsung Health, Google Fit etc.
  * Os dois sentidos são opt-in e independentes:
  * - exportação: grava os treinos concluídos como sessões de exercício;
  * - importação: lê a frequência cardíaca e as calorias medidas pelo relógio durante o treino e o peso corporal.

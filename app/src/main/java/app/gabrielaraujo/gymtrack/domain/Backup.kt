@@ -28,7 +28,7 @@ data class BackupTables(
 
 @Serializable
 data class BackupFile(
-    val app: String = "GymTrack",
+    val app: String = "RepStack",
     val schemaVersion: Int = 1,
     val exportedAt: Long,
     val tables: BackupTables,

@@ -55,10 +55,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.gabrielaraujo.gymtrack.data.SetRecord
-import app.gabrielaraujo.gymtrack.ui.GymTrackViewModel
+import app.gabrielaraujo.gymtrack.ui.RepStackViewModel
 import app.gabrielaraujo.gymtrack.ui.components.BtnVariant
 import app.gabrielaraujo.gymtrack.ui.components.NumberStepper
-import app.gabrielaraujo.gymtrack.ui.components.GymTrackButton
+import app.gabrielaraujo.gymtrack.ui.components.RepStackButton
 import app.gabrielaraujo.gymtrack.ui.formatWeight
 import app.gabrielaraujo.gymtrack.ui.theme.TC
 import app.gabrielaraujo.gymtrack.ui.timeAgo
@@ -83,7 +83,7 @@ private fun clock(seconds: Int): String {
 }
 
 @Composable
-fun WorkoutExecutionScreen(vm: GymTrackViewModel) {
+fun WorkoutExecutionScreen(vm: RepStackViewModel) {
     val state by vm.state.collectAsStateWithLifecycle()
     val active = state.activeSession ?: return
     val session = active.session
@@ -146,7 +146,7 @@ fun WorkoutExecutionScreen(vm: GymTrackViewModel) {
 
         // Progress bar
         Box(Modifier.fillMaxWidth().height(4.dp).background(TC.Slate800)) {
-            Box(Modifier.fillMaxWidth(if (total == 0) 0f else completedExercises.toFloat() / total).height(4.dp).background(TC.Indigo500))
+            Box(Modifier.fillMaxWidth(if (total == 0) 0f else completedExercises.toFloat() / total).height(4.dp).background(TC.Lime))
         }
 
         // Tabs
@@ -155,8 +155,8 @@ fun WorkoutExecutionScreen(vm: GymTrackViewModel) {
                 val i = session.exercises.indexOf(ex)
                 val isActive = i == idx
                 val done = ex.completed
-                val bg = if (isActive) TC.Indigo600 else if (done) TC.Emerald600.copy(alpha = 0.25f) else TC.Slate800
-                val fg = if (isActive) TC.White else if (done) TC.Emerald400 else TC.Slate400
+                val bg = if (isActive) TC.Lime else if (done) TC.Emerald600.copy(alpha = 0.25f) else TC.Slate800
+                val fg = if (isActive) TC.OnLime else if (done) TC.Emerald400 else TC.Slate400
                 Column(
                     Modifier.clip(RoundedCornerShape(12.dp)).background(bg).clickable { vm.setCurrentExercise(i) }.padding(horizontal = 12.dp, vertical = 8.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
@@ -176,7 +176,7 @@ fun WorkoutExecutionScreen(vm: GymTrackViewModel) {
                 Column(Modifier.fillMaxWidth().padding(bottom = 12.dp).clip(RoundedCornerShape(16.dp)).background(TC.Slate900).padding(16.dp)) {
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Icon(Icons.Default.Timer, null, tint = TC.Indigo400, modifier = Modifier.size(18.dp))
+                            Icon(Icons.Default.Timer, null, tint = TC.LimeSoft, modifier = Modifier.size(18.dp))
                             Text("Descanso", color = TC.Slate400, fontSize = 14.sp)
                         }
                         Text(clock(rest), color = TC.White, fontSize = 30.sp, fontWeight = FontWeight.Black)
@@ -204,7 +204,7 @@ fun WorkoutExecutionScreen(vm: GymTrackViewModel) {
                     if (lastBestSet != null && active.lastSessionForDay != null) {
                         Text(
                             "Última: ${formatWeight(lastBestSet.weight)}kg × ${lastBestSet.reps} · ${timeAgo(active.lastSessionForDay!!.startTime)}",
-                            color = TC.Indigo400, fontSize = 12.sp, modifier = Modifier.padding(top = 4.dp),
+                            color = TC.LimeSoft, fontSize = 12.sp, modifier = Modifier.padding(top = 4.dp),
                         )
                     }
                 }
@@ -217,7 +217,7 @@ fun WorkoutExecutionScreen(vm: GymTrackViewModel) {
                     val sizeDp = if (!s.completed && i == firstIncomplete) 16.dp else 12.dp
                     val color = when {
                         s.completed -> TC.Emerald500
-                        i == firstIncomplete -> TC.Indigo500
+                        i == firstIncomplete -> TC.Lime
                         else -> TC.Slate700
                     }
                     Box(Modifier.padding(horizontal = 4.dp).size(sizeDp).clip(CircleShape).background(color))
@@ -257,8 +257,8 @@ fun WorkoutExecutionScreen(vm: GymTrackViewModel) {
                         Text("Todas as séries no máximo!", color = TC.Emerald400, fontSize = 14.sp, fontWeight = FontWeight.Bold)
                         Text("Sugestão: aumente para ${formatWeight(sug)}kg no próximo treino.", color = TC.Slate400, fontSize = 12.sp, modifier = Modifier.padding(vertical = 6.dp))
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            GymTrackButton("Aceitar +2.5kg", onClick = { vm.updateExerciseInitialWeight(current.workoutExerciseId, sug); progressionSuggestion = null }, variant = BtnVariant.Success, modifier = Modifier.weight(1f))
-                            GymTrackButton("Manter", onClick = { progressionSuggestion = null }, variant = BtnVariant.Ghost, modifier = Modifier.weight(1f))
+                            RepStackButton("Aceitar +2.5kg", onClick = { vm.updateExerciseInitialWeight(current.workoutExerciseId, sug); progressionSuggestion = null }, variant = BtnVariant.Success, modifier = Modifier.weight(1f))
+                            RepStackButton("Manter", onClick = { progressionSuggestion = null }, variant = BtnVariant.Ghost, modifier = Modifier.weight(1f))
                         }
                     }
                 }
@@ -268,7 +268,7 @@ fun WorkoutExecutionScreen(vm: GymTrackViewModel) {
 
             // Complete / edit exercise
             if (!current.completed) {
-                GymTrackButton(
+                RepStackButton(
                     "Concluir Exercício" + if (completedSetCount > 0) " ($completedSetCount/${current.sets.size})" else "",
                     onClick = {
                         vm.completeExercise(idx); vm.stopRestTimer(); progressionSuggestion = null
@@ -278,7 +278,7 @@ fun WorkoutExecutionScreen(vm: GymTrackViewModel) {
                     leading = { Icon(Icons.Default.Check, null, tint = TC.White, modifier = Modifier.size(18.dp)) },
                 )
             } else {
-                GymTrackButton("Editar exercício", onClick = { vm.uncompleteExercise(idx) }, variant = BtnVariant.Ghost, modifier = Modifier.fillMaxWidth())
+                RepStackButton("Editar exercício", onClick = { vm.uncompleteExercise(idx) }, variant = BtnVariant.Ghost, modifier = Modifier.fillMaxWidth())
             }
 
             Spacer(Modifier.height(16.dp))
@@ -293,7 +293,7 @@ fun WorkoutExecutionScreen(vm: GymTrackViewModel) {
             Spacer(Modifier.height(16.dp))
 
             if (allDone) {
-                GymTrackButton(
+                RepStackButton(
                     "Finalizar Treino", onClick = { vm.completeSession() }, modifier = Modifier.fillMaxWidth(),
                     leading = { Icon(Icons.Default.EmojiEvents, null, tint = TC.White, modifier = Modifier.size(20.dp)) },
                 )
@@ -311,8 +311,8 @@ fun WorkoutExecutionScreen(vm: GymTrackViewModel) {
                 Text("Abandonar treino?", color = TC.White, fontSize = 18.sp, fontWeight = FontWeight.Bold)
                 Text("O progresso deste treino não será salvo.", color = TC.Slate400, fontSize = 14.sp, modifier = Modifier.padding(vertical = 12.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    GymTrackButton("Continuar", onClick = { showAbort = false }, variant = BtnVariant.Ghost, modifier = Modifier.weight(1f))
-                    GymTrackButton("Abandonar", onClick = { showAbort = false; vm.abandonSession() }, variant = BtnVariant.Danger, modifier = Modifier.weight(1f))
+                    RepStackButton("Continuar", onClick = { showAbort = false }, variant = BtnVariant.Ghost, modifier = Modifier.weight(1f))
+                    RepStackButton("Abandonar", onClick = { showAbort = false; vm.abandonSession() }, variant = BtnVariant.Danger, modifier = Modifier.weight(1f))
                 }
             }
         }
@@ -378,14 +378,14 @@ private fun SetRow(
 ) {
     val border = when {
         set.completed -> TC.Emerald600.copy(alpha = 0.4f)
-        isCurrent -> TC.Indigo500.copy(alpha = 0.5f)
+        isCurrent -> TC.Lime.copy(alpha = 0.5f)
         else -> TC.Slate800
     }
     Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(TC.Slate900).androidx_border(border)) {
         Row(Modifier.fillMaxWidth().padding(12.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            Box(Modifier.size(32.dp).clip(RoundedCornerShape(10.dp)).background(if (set.completed) TC.Emerald600 else if (isCurrent) TC.Indigo600 else TC.Slate800), contentAlignment = Alignment.Center) {
+            Box(Modifier.size(32.dp).clip(RoundedCornerShape(10.dp)).background(if (set.completed) TC.Emerald600 else if (isCurrent) TC.Lime else TC.Slate800), contentAlignment = Alignment.Center) {
                 if (set.completed) Icon(Icons.Default.Check, null, tint = TC.White, modifier = Modifier.size(14.dp))
-                else Text("${index + 1}", color = if (isCurrent) TC.White else TC.Slate500, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                else Text("${index + 1}", color = if (isCurrent) TC.OnLime else TC.Slate500, fontSize = 14.sp, fontWeight = FontWeight.Bold)
             }
             Column(Modifier.weight(1f)) {
                 Text("CARGA (kg)" + if (previous != null && previous.weight > 0) " · ant. ${formatWeight(previous.weight)}" else "", color = TC.Slate500, fontSize = 10.sp)
@@ -395,8 +395,8 @@ private fun SetRow(
                 Text("REPS" + if (previous != null) " · ant. ${previous.reps}" else "", color = TC.Slate500, fontSize = 10.sp)
                 NumberStepper(set.reps.toDouble(), { onReps(it.toInt()) }, step = 1.0, min = 1.0, max = 100.0, isInt = true)
             }
-            Box(Modifier.size(40.dp).clip(RoundedCornerShape(12.dp)).background(if (set.completed) TC.Emerald600 else if (isCurrent) TC.Indigo600 else TC.Slate800).clickable { onComplete() }, contentAlignment = Alignment.Center) {
-                Icon(Icons.Default.Check, "Concluir série", tint = if (set.completed || isCurrent) TC.White else TC.Slate400, modifier = Modifier.size(18.dp))
+            Box(Modifier.size(40.dp).clip(RoundedCornerShape(12.dp)).background(if (set.completed) TC.Emerald600 else if (isCurrent) TC.Lime else TC.Slate800).clickable { onComplete() }, contentAlignment = Alignment.Center) {
+                Icon(Icons.Default.Check, "Concluir série", tint = if (set.completed) TC.White else if (isCurrent) TC.OnLime else TC.Slate400, modifier = Modifier.size(18.dp))
             }
         }
         if (canRemove) {

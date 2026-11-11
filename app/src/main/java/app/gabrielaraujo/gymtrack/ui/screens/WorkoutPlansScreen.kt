@@ -40,10 +40,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.gabrielaraujo.gymtrack.data.WorkoutPlan
-import app.gabrielaraujo.gymtrack.ui.GymTrackViewModel
+import app.gabrielaraujo.gymtrack.ui.RepStackViewModel
 import app.gabrielaraujo.gymtrack.ui.components.BtnVariant
-import app.gabrielaraujo.gymtrack.ui.components.GymTrackButton
-import app.gabrielaraujo.gymtrack.ui.components.GymTrackCard
+import app.gabrielaraujo.gymtrack.ui.components.RepStackButton
+import app.gabrielaraujo.gymtrack.ui.components.RepStackCard
 import app.gabrielaraujo.gymtrack.data.newId
 import app.gabrielaraujo.gymtrack.ui.theme.TC
 import kotlinx.serialization.Serializable
@@ -55,7 +55,7 @@ private data class PlanExport(val schemaVersion: Int = 1, val workoutPlan: Worko
 private val exportJson = Json { prettyPrint = true; ignoreUnknownKeys = true }
 
 @Composable
-fun WorkoutPlansScreen(vm: GymTrackViewModel, onEditPlan: (String) -> Unit, onNewPlan: () -> Unit) {
+fun WorkoutPlansScreen(vm: RepStackViewModel, onEditPlan: (String) -> Unit, onNewPlan: () -> Unit) {
     val state by vm.state.collectAsStateWithLifecycle()
     val plans = state.plans
     val context = LocalContext.current
@@ -72,7 +72,7 @@ fun WorkoutPlansScreen(vm: GymTrackViewModel, onEditPlan: (String) -> Unit, onNe
                     Text("Fichas de Treino", color = TC.White, fontSize = 24.sp, fontWeight = FontWeight.Bold)
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         Icon(Icons.Default.Upload, "Importar", tint = TC.Slate400, modifier = Modifier.size(38.dp).clip(RoundedCornerShape(12.dp)).background(TC.Slate800).clickable { showImport = true }.padding(9.dp))
-                        Icon(Icons.Default.Add, "Nova", tint = TC.White, modifier = Modifier.size(38.dp).clip(RoundedCornerShape(12.dp)).background(TC.Indigo600).clickable { onNewPlan() }.padding(9.dp))
+                        Icon(Icons.Default.Add, "Nova", tint = TC.OnLime, modifier = Modifier.size(38.dp).clip(RoundedCornerShape(12.dp)).background(TC.Lime).clickable { onNewPlan() }.padding(9.dp))
                     }
                 }
             }
@@ -82,7 +82,7 @@ fun WorkoutPlansScreen(vm: GymTrackViewModel, onEditPlan: (String) -> Unit, onNe
                     Column(Modifier.fillMaxWidth().padding(top = 48.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                         Text("Nenhuma ficha criada", color = TC.Slate400)
                         Spacer(Modifier.height(16.dp))
-                        GymTrackButton("Criar ficha", onClick = onNewPlan)
+                        RepStackButton("Criar ficha", onClick = onNewPlan)
                     }
                 }
             } else {
@@ -132,7 +132,7 @@ private fun PlanCard(
             Column(Modifier.weight(1f)) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(plan.name, color = TC.White, fontSize = 16.sp, fontWeight = FontWeight.Bold)
-                    if (isActive) Text("ATIVA", color = TC.White, fontSize = 10.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.clip(RoundedCornerShape(20.dp)).background(TC.Indigo600).padding(horizontal = 8.dp, vertical = 2.dp))
+                    if (isActive) Text("ATIVA", color = TC.OnLime, fontSize = 10.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.clip(RoundedCornerShape(20.dp)).background(TC.Lime).padding(horizontal = 8.dp, vertical = 2.dp))
                 }
                 Text("${plan.days.size} treinos · ${plan.days.joinToString(" / ") { it.label }}", color = TC.Slate500, fontSize = 13.sp)
             }
@@ -140,7 +140,7 @@ private fun PlanCard(
         if (expanded) {
             Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 4.dp), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                 ActionChip("Editar", onEdit)
-                if (!isActive) ActionChip("Ativar", onActivate, TC.Indigo400)
+                if (!isActive) ActionChip("Ativar", onActivate, TC.LimeSoft)
                 ActionChip("Duplicar", onDuplicate)
             }
             Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 4.dp).padding(bottom = 8.dp), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -172,13 +172,13 @@ private fun ImportDialog(onImport: (String) -> Boolean, onClose: () -> Unit) {
                     .verticalScroll(rememberScrollState()).padding(12.dp),
             ) {
                 if (text.isEmpty()) Text("Cole o JSON da ficha aqui...", color = TC.Slate500, fontSize = 13.sp)
-                BasicTextField(text, { text = it }, textStyle = TextStyle(color = TC.Slate300, fontSize = 13.sp), cursorBrush = androidx.compose.ui.graphics.SolidColor(TC.Indigo400), modifier = Modifier.fillMaxWidth())
+                BasicTextField(text, { text = it }, textStyle = TextStyle(color = TC.Slate300, fontSize = 13.sp), cursorBrush = androidx.compose.ui.graphics.SolidColor(TC.LimeSoft), modifier = Modifier.fillMaxWidth())
             }
             if (error.isNotEmpty()) { Spacer(Modifier.height(6.dp)); Text(error, color = TC.Red400, fontSize = 12.sp) }
             Spacer(Modifier.height(12.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                GymTrackButton("Cancelar", onClick = onClose, variant = BtnVariant.Ghost, modifier = Modifier.weight(1f))
-                GymTrackButton("Importar", onClick = { if (!onImport(text)) error = "JSON inválido. Verifique a formatação." }, modifier = Modifier.weight(1f))
+                RepStackButton("Cancelar", onClick = onClose, variant = BtnVariant.Ghost, modifier = Modifier.weight(1f))
+                RepStackButton("Importar", onClick = { if (!onImport(text)) error = "JSON inválido. Verifique a formatação." }, modifier = Modifier.weight(1f))
             }
         }
     }

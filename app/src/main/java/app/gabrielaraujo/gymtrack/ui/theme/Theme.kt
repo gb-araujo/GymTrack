@@ -6,9 +6,10 @@ import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
 
 private val DarkColors = darkColorScheme(
-    primary = TC.Indigo500,
-    onPrimary = TC.White,
-    secondary = TC.Indigo400,
+    primary = TC.Lime,
+    onPrimary = TC.OnLime,
+    secondary = TC.LimeSoft,
+    onSecondary = TC.OnLime,
     background = TC.Background,
     onBackground = TC.White,
     surface = TC.Slate900,
@@ -19,13 +20,13 @@ private val DarkColors = darkColorScheme(
 )
 
 @Composable
-fun GymTrackTheme(
+fun RepStackTheme(
     @Suppress("UNUSED_PARAMETER") darkTheme: Boolean = isSystemInDarkTheme(),
     content: @Composable () -> Unit,
 ) {
     MaterialTheme(
         colorScheme = DarkColors,
-        typography = GymTrackTypography,
+        typography = RepStackTypography,
         content = content,
     )
 }

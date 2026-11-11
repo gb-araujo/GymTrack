@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="620" height="110" viewBox="0 0 620 110">
+        <rect width="100%" height="100%" fill="#0B0D0F"/>
+        <g><path d="M 20,12 H 77 Q 83,12 86,18 L 98,38 Q 101,44 95,49 L 82,59 H 96 L 113,88 H 83 L 66,60 H 46 L 30,88 H 2 L 22,51 H 65 L 76,43 H 32 Z" fill="#A3FF12" transform="translate(4,4) scale(0.9,1.0)"/></g>
+        <text x="135" y="76" font-family="Inter, Arial, sans-serif" font-size="66" font-weight="800" font-style="italic" letter-spacing="-2" fill="#F3F4F6">Repstack</text>
+        </svg>

@@ -40,11 +40,11 @@ import androidx.health.connect.client.HealthConnectClient
 import androidx.health.connect.client.PermissionController
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import app.gabrielaraujo.gymtrack.GymTrackApplication
+import app.gabrielaraujo.gymtrack.RepStackApplication
 import app.gabrielaraujo.gymtrack.health.ExportStatus
 import app.gabrielaraujo.gymtrack.health.SamsungHealth
 import app.gabrielaraujo.gymtrack.ui.components.BtnVariant
-import app.gabrielaraujo.gymtrack.ui.components.GymTrackButton
+import app.gabrielaraujo.gymtrack.ui.components.RepStackButton
 import app.gabrielaraujo.gymtrack.ui.formatShortDateTime
 import app.gabrielaraujo.gymtrack.ui.theme.TC
 import kotlinx.coroutines.launch
@@ -57,7 +57,7 @@ import kotlinx.coroutines.launch
 @Composable
 fun HealthConnectSection(onImportEnabled: () -> Unit) {
     val context = LocalContext.current
-    val app = context.applicationContext as GymTrackApplication
+    val app = context.applicationContext as RepStackApplication
     val health = app.healthConnect
     val exportOn by health.exportEnabled.collectAsStateWithLifecycle()
     val importOn by health.importEnabled.collectAsStateWithLifecycle()
@@ -98,7 +98,7 @@ fun HealthConnectSection(onImportEnabled: () -> Unit) {
         HealthConnectClient.SDK_UNAVAILABLE_PROVIDER_UPDATE_REQUIRED -> {
             Text("Instale ou atualize o Health Connect para trocar dados com o Samsung Health, Google Fit e similares.", color = TC.Slate400, fontSize = 12.sp)
             Spacer(Modifier.height(6.dp))
-            GymTrackButton(
+            RepStackButton(
                 "Abrir Play Store",
                 onClick = {
                     val uri = Uri.parse("market://details?id=com.google.android.apps.healthdata&url=healthconnect%3A%2F%2Fonboarding")
@@ -131,7 +131,7 @@ fun HealthConnectSection(onImportEnabled: () -> Unit) {
         if (exporting) {
             exportStatus?.let { ExportStatusText(it) }
             Spacer(Modifier.height(6.dp))
-            GymTrackButton(
+            RepStackButton(
                 "Enviar treinos anteriores",
                 onClick = {
                     scope.launch {
@@ -166,7 +166,7 @@ fun HealthConnectSection(onImportEnabled: () -> Unit) {
         }
 
         Spacer(Modifier.height(8.dp))
-        GymTrackButton(
+        RepStackButton(
             "Ver dados no Health Connect",
             onClick = { runCatching { context.startActivity(health.manageDataIntent()) } },
             variant = BtnVariant.Ghost,
@@ -187,7 +187,7 @@ private fun ToggleRow(title: String, subtitle: String, checked: Boolean, onChang
             Text(title, color = TC.Slate300, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
             Text(subtitle, color = TC.Slate500, fontSize = 11.sp)
         }
-        Switch(checked = checked, onCheckedChange = onChange, colors = SwitchDefaults.colors(checkedTrackColor = TC.Indigo600))
+        Switch(checked = checked, onCheckedChange = onChange, colors = SwitchDefaults.colors(checkedTrackColor = TC.Lime, checkedThumbColor = TC.OnLime))
     }
 }
 
@@ -213,7 +213,7 @@ private fun SamsungHealthGuide(exporting: Boolean) {
         Spacer(Modifier.height(8.dp))
         GuideStep(1, "Ligue \"Enviar treinos concluídos\" acima.", done = exporting)
         GuideStep(2, "No Health Connect, permita que o Samsung Health leia \"Exercício\".")
-        GymTrackButton(
+        RepStackButton(
             "Liberar no Health Connect",
             onClick = {
                 if (!SamsungHealth.openHealthConnectPermissions(context)) toast(context, "Não consegui abrir o Health Connect.")
@@ -222,7 +222,7 @@ private fun SamsungHealthGuide(exporting: Boolean) {
             modifier = Modifier.fillMaxWidth().padding(start = 28.dp, bottom = 8.dp),
         )
         GuideStep(3, "No Samsung Health, abra Configurações › Health Connect e confira se a sincronização está ligada.")
-        GymTrackButton(
+        RepStackButton(
             "Abrir Samsung Health",
             onClick = { if (!SamsungHealth.open(context)) toast(context, "Não consegui abrir o Samsung Health.") },
             variant = BtnVariant.Ghost,

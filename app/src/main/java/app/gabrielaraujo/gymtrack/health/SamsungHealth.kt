@@ -8,7 +8,7 @@ import androidx.health.connect.client.HealthConnectClient
 
 /**
  * Atalhos para o Samsung Health. Não há integração direta: o Samsung Health sincroniza com o
- * Health Connect nos dois sentidos, e o GymTrack lê e grava lá.
+ * Health Connect nos dois sentidos, e o RepStack lê e grava lá.
  */
 object SamsungHealth {
     const val PACKAGE = "com.sec.android.app.shealth"
@@ -24,7 +24,7 @@ object SamsungHealth {
 
     /**
      * Abre no Health Connect as permissões do Samsung Health, onde se libera a leitura de "Exercício"
-     * (sem ela o Samsung Health não importa os treinos do GymTrack). Se o aparelho não abrir a tela
+     * (sem ela o Samsung Health não importa os treinos do RepStack). Se o aparelho não abrir a tela
      * do app direto, cai nas configurações gerais do Health Connect.
      */
     fun openHealthConnectPermissions(context: Context): Boolean {

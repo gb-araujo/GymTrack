@@ -66,7 +66,7 @@ fun StreakBar(streak: StreakInfo) {
                     !filled -> TC.Slate800
                     streak.daysLeft <= 1 -> TC.Red400
                     streak.daysLeft <= 3 -> TC.Orange400
-                    else -> TC.Indigo500
+                    else -> TC.Lime
                 }
                 Box(Modifier.weight(1f).height(8.dp).clip(CircleShape).background(color))
             }
@@ -94,7 +94,7 @@ private fun formatDeadline(date: java.time.LocalDate): String =
 @Composable
 fun SyncIndicator(status: SyncStatus, pending: Int, onClick: () -> Unit) {
     val (icon, color) = when {
-        status is SyncStatus.Syncing -> Icons.Default.CloudSync to TC.Indigo400
+        status is SyncStatus.Syncing -> Icons.Default.CloudSync to TC.LimeSoft
         status is SyncStatus.Error -> Icons.Default.CloudOff to TC.Red400
         pending > 0 -> Icons.Default.Cloud to TC.Orange400
         status is SyncStatus.Synced -> Icons.Default.CloudDone to TC.Emerald400

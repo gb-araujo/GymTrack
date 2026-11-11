@@ -1,9 +1,19 @@
-# GymTrack
+# RepStack
 
 App Android nativo de acompanhamento de treinos de musculação, escrito em **Kotlin + Jetpack Compose**.
 Offline-first: tudo fica no aparelho (Room) e, com login Google, sincroniza com o Firestore.
 
+RepStack é o novo nome do GymTrack. O identificador Android `app.gabrielaraujo.gymtrack`,
+o banco `track.db`, as preferências e os identificadores de sincronização foram preservados
+para permitir atualizar instalações existentes. O componente Android do widget mantém seu
+nome antigo para preservar widgets já adicionados à tela inicial.
+
+A landing page está em `docs/landing.html`. Ela usa o símbolo do pacote de marca e Inter
+hospedada em `docs/assets/`; a licença da fonte acompanha o site e o APK.
+
 ## Telas
+
+Capturas do RepStack com dados de demonstração, atualizadas em 11/11/2026.
 
 <p align="center">
   <img src="docs/screenshots/inicio.png" width="220" alt="Início">
@@ -54,7 +64,7 @@ Na primeira execução, o banco é semeado com ~45 exercícios e uma ficha exemp
 ## Samsung Health e Health Connect
 
 Não há integração direta com o Samsung Health: ele sincroniza com o **Health Connect** nos dois
-sentidos, e o GymTrack lê e grava lá. As duas opções ficam na tela de conta e são independentes:
+sentidos, e o RepStack lê e grava lá. As duas opções ficam na tela de conta e são independentes:
 
 - **Enviar treinos concluídos** — grava cada treino como `ExerciseSessionRecord` (treino de força,
   com as séries nas notas). Edições e exclusões do histórico também são enviadas. A tela mostra o
@@ -72,7 +82,7 @@ esse passo a passo, com atalhos, quando o Samsung Health está instalado.
 Limitações:
 
 - O Samsung Health só grava calorias no Health Connect para exercícios registrados nele (ex.: um treino
-  iniciado no relógio). Sem isso, o treino do GymTrack fica sem calorias.
+  iniciado no relógio). Sem isso, o treino do RepStack fica sem calorias.
 - A frequência cardíaca depende de quantas medições o relógio fez: com a medição a cada 10 minutos,
   um treino pode ter menos de 3 medições e ficar sem FC. Medir continuamente resolve.
 - A leitura só é permitida com o app em primeiro plano, e o Health Connect só libera dados de até
@@ -118,9 +128,9 @@ Para usar o Firebase real no CI, cadastre o conteúdo do `google-services.json` 
 O Room exporta o schema de cada versão para `app/schemas/`. **Não há fallback destrutivo**: ao
 mudar qualquer `@Entity`, é obrigatório
 
-1. subir `GymTrackDatabase.VERSION`;
+1. subir `RepStackDatabase.VERSION`;
 2. rodar o build para gerar o novo JSON em `app/schemas/` e commitá-lo;
-3. adicionar a migração em `GymTrackDatabase.MIGRATIONS` (ou um `@AutoMigration` se for só aditiva).
+3. adicionar a migração em `RepStackDatabase.MIGRATIONS` (ou um `@AutoMigration` se for só aditiva).
 
 Sem isso o app falha ao abrir em vez de apagar os treinos do usuário (e o CI acusa o schema não commitado).
 
@@ -151,8 +161,8 @@ app/src/main/java/app/gabrielaraujo/gymtrack/
     ├── theme/        # paleta, tipografia, tema
     ├── components/   # Card, botões, stepper, gráfico, ofensiva, status de sync
     ├── screens/      # Início, Fichas, Editor, Execução, Resumo, Histórico, Progresso, Metas
-    ├── GymTrackApp.kt        # navegação + bottom bar
-    └── GymTrackViewModel.kt  # estado de tela e orquestração
+    ├── RepStackApp.kt        # navegação + bottom bar
+    └── RepStackViewModel.kt  # estado de tela e orquestração
 app/src/test/    # testes JUnit (domain) e Robolectric (ViewModel + Room em memória)
 app/schemas/     # schema do Room por versão
 ```

@@ -28,8 +28,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import app.gabrielaraujo.gymtrack.ui.GymTrackViewModel
-import app.gabrielaraujo.gymtrack.ui.components.GymTrackButton
+import app.gabrielaraujo.gymtrack.ui.RepStackViewModel
+import app.gabrielaraujo.gymtrack.ui.components.RepStackButton
 import app.gabrielaraujo.gymtrack.ui.formatDuration
 import app.gabrielaraujo.gymtrack.ui.formatVolume
 import app.gabrielaraujo.gymtrack.ui.formatWeight
@@ -37,7 +37,7 @@ import app.gabrielaraujo.gymtrack.ui.watchStats
 import app.gabrielaraujo.gymtrack.ui.theme.TC
 
 @Composable
-fun SessionSummaryScreen(vm: GymTrackViewModel, onFinish: () -> Unit) {
+fun SessionSummaryScreen(vm: RepStackViewModel, onFinish: () -> Unit) {
     val state by vm.state.collectAsStateWithLifecycle()
     val session = state.activeSession?.session ?: return
     val prs = session.prsAchieved
@@ -106,7 +106,7 @@ fun SessionSummaryScreen(vm: GymTrackViewModel, onFinish: () -> Unit) {
         }
 
         Spacer(Modifier.height(24.dp))
-        GymTrackButton("Finalizar", onClick = onFinish, modifier = Modifier.fillMaxWidth())
+        RepStackButton("Finalizar", onClick = onFinish, modifier = Modifier.fillMaxWidth())
         Spacer(Modifier.height(24.dp))
     }
 }
